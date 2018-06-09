@@ -1,0 +1,22 @@
+{
+    "legacy_addon_id": "DisableRunDeferred",
+    "title": "CLI Job Runner",
+    "description": "Disables browser based job trigger and implements a CLI based job runner for unix cron",
+    "version_id": 1,
+    "version_string": "0.1.0",
+    "dev": "Simon Hampel",
+    "dev_url": "https://bitbucket.org/hampel/",
+    "faq_url": "",
+    "support_url": "https://bitbucket.org/hampel/job-runner-xenforo/issues",
+    "extra_urls": {
+        "Git Repository": "https://bitbucket.org/hampel/job-runner-xenforo",
+        "Twitter": "https://twitter.com/SimonHampel"
+    },
+    "require": {
+        "php": [
+            "7.0.0",
+            "PHP 7.0+"
+        ]
+    },
+    "icon": "fa-calendar"
+}

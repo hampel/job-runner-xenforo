@@ -1,0 +1,9 @@
+{
+    "event_id": "templater_global_data",
+    "execute_order": 10,
+    "callback_class": "JobRunner\\Listener",
+    "callback_method": "templaterGlobalData",
+    "active": true,
+    "hint": "",
+    "description": "Disable runJobs trigger so we can run jobs ourselves"
+}
