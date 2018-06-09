@@ -14,9 +14,9 @@ class RunJobs extends Command
 			->setDescription('Run pending jobs in the job queue')
 			->addOption(
 				'time',
-				't',
+				null,
 				InputOption::VALUE_OPTIONAL,
-				"Time in seconds to limit job runner execution to (default: 30)",
+				"Time in seconds to limit job runner execution to",
 				30
 			);
 	}
