@@ -1,7 +1,7 @@
 {
     "legacy_addon_id": "DisableRunDeferred",
     "title": "CLI Job Runner",
-    "description": "Disables the browser based job trigger and implements a CLI based job runner for unix cron",
+    "description": "Disables the browser triggered job runner and implements a CLI triggered job runner for Unix cron",
     "version_id": 2,
     "version_string": "1.0.0",
     "dev": "Simon Hampel",
