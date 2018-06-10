@@ -82,7 +82,7 @@ the following cron command:
     */5       *       *       *       *       php <path to your forum root>/cmd.php --quiet --time=240 xf:run-jobs
 
 For further customisation of your job execution, you may also adjust the maximum time that each job is permitted to run.
-This is configured via a [XenForo Config Option](https://xenforo.com/xf2-docs/manual/config/#other-variables):
+This is configured via a [XenForo config.php Option](https://xenforo.com/xf2-docs/manual/config/#other-variables):
  
 	:::php
 	$config[jobMaxRunTime'] = 8;
@@ -92,9 +92,9 @@ they are suspended for further processing on another go-around, if possible. The
 browser-triggered job runner and so to allow jobs to execute longer in a CLI environment, you may want to adjust this
 to a higher value. 
 
-You should not set jobMaxRunTime to anything higher than 30 seconds, or the time specified by the --time option - and
- in general it is suggested that this be kept to a relatively small value to prevent a single job from preventing other
- jobs from executing in a timely manner. Some experimentation may be required to find the optimal value for your server
- load.
+You should not set jobMaxRunTime to anything higher than 30 seconds, or the time specified by the --time option. In 
+general it is suggested that this setting be kept to a relatively small value to avoid the situation where a single very
+long job may prevent other jobs from executing in a timely manner. Some experimentation may be required to find the 
+optimal value for your server load and forum size.
 
  
