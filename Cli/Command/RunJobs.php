@@ -29,22 +29,23 @@ class RunJobs extends Command
 		if (\XF::$versionId == $app->options()->currentVersionId)
 		{
 			$jobManager = $app->jobManager();
-			$maxRunTime = $app->config('jobMaxRunTime');
+			$maxJobRunTime = intval($app->config('jobMaxRunTime')); // maximum time for a single job to execute
+			$maxQueueRunTime = intval($input->getOption('time')); // maximum time for the job runner to run jobs
 
 			do
 			{
-				$jobManager->runQueue(false, $maxRunTime);
+				$jobManager->runQueue(false, $maxJobRunTime);
 				$more = $jobManager->queuePending(false);
 
-			} while ($more && (microtime(true) - $start < intval($input->getOption('time'))));
+			} while ($more && (microtime(true) - $start < $maxQueueRunTime));
 
 			if ($more)
 			{
-				$output->writeln("<info>More jobs pending</info>");
+				$output->writeln("<info>Maximum runtime ({$maxQueueRunTime} seconds) expired with more runnable jobs pending</info>");
 			}
 			else
 			{
-				$output->writeln("<info>No more jobs pending</info>");
+				$output->writeln("<info>No more runnable jobs pending</info>");
 			}
 		}
 		else
