@@ -69,7 +69,7 @@ For example, to allow the job runner to execute for a maximum of 45 seconds:
 
 It is not recommended that you allow the job runner to run for longer than the period between cron triggers. For
 example, the above cron task example will execute the job runner every minute, so setting the maximum run time to more
-then 60 is generally a bad idea.  
+than 60 is generally a bad idea.  
 
 If you prefer to not run the cron task as frequently as once per minute, you can adjust the cron job as 
 required and if you do, you may also want to allow the job runner task to run for longer than the default 30 seconds to
@@ -92,7 +92,7 @@ they are suspended for further processing on another go-around, if possible. The
 browser-triggered job runner and so to allow jobs to execute longer in a CLI environment, you may want to adjust this
 to a higher value. 
 
-You should not set jobMaxRunTime to anything higher than 30 seconds, or the time specified by the --time option. In 
+You should not set `jobMaxRunTime` to anything higher than 30 seconds, or the time specified by the --time option. In 
 general it is suggested that this setting be kept to a relatively small value to avoid the situation where a single very
 long job may prevent other jobs from executing in a timely manner. Some experimentation may be required to find the 
 optimal value for your server load and forum size.
