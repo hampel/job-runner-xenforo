@@ -2,7 +2,7 @@
     "legacy_addon_id": "DisableRunDeferred",
     "title": "CLI Job Runner",
     "description": "Disables the browser triggered job runner and implements a CLI triggered job runner for Unix cron",
-    "version_id": 2,
+    "version_id": 1000070,
     "version_string": "1.0.0",
     "dev": "Simon Hampel",
     "dev_url": "https://bitbucket.org/hampel/",

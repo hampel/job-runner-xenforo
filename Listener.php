@@ -1,4 +1,4 @@
-<?php namespace JobRunner;
+<?php namespace Hampel\JobRunner;
 
 class Listener
 {

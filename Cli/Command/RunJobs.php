@@ -1,4 +1,4 @@
-<?php namespace JobRunner\Cli\Command;
+<?php namespace Hampel\JobRunner\Cli\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
