@@ -37,6 +37,9 @@ class RunJobs extends Command
 				$jobManager->runQueue(false, $maxJobRunTime);
 				$more = $jobManager->queuePending(false);
 
+				// limit overall memory usage by cleaning up cached entities
+				$app->em()->clearEntityCache();
+
 			} while ($more && (microtime(true) - $start < $maxQueueRunTime));
 
 			if ($more)
