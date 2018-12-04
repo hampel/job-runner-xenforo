@@ -26,7 +26,7 @@ class RunJobs extends Command
 		$app = \XF::app();
 		$start = microtime(true);
 
-		if (\XF::$versionId == $app->options()->currentVersionId)
+		if (\XF::$versionId == $app->options()->currentVersionId || !\XF::config('checkVersion'))
 		{
 			$jobManager = $app->jobManager();
 			$maxJobRunTime = intval($app->config('jobMaxRunTime')); // maximum time for a single job to execute
