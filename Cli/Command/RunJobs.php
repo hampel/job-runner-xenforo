@@ -26,7 +26,7 @@ class RunJobs extends Command
 		$app = \XF::app();
 		$start = microtime(true);
 
-		if (\XF::$versionId == $app->options()->currentVersionId)
+		if (\XF::$versionId == $app->options()->currentVersionId || !\XF::config('checkVersion'))
 		{
 			$jobManager = $app->jobManager();
 			$maxJobRunTime = intval($app->config('jobMaxRunTime')); // maximum time for a single job to execute
@@ -36,6 +36,9 @@ class RunJobs extends Command
 			{
 				$jobManager->runQueue(false, $maxJobRunTime);
 				$more = $jobManager->queuePending(false);
+
+				// limit overall memory usage by cleaning up cached entities
+				$app->em()->clearEntityCache();
 
 			} while ($more && (microtime(true) - $start < $maxQueueRunTime));
 
