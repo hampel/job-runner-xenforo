@@ -1,7 +1,7 @@
-CLI Job Runner for XenForo 2.0
+CLI Job Runner for XenForo 2.x
 ==============================
 
-This XenForo 2.0 addon disables the browser triggered job runner and implements a CLI triggered job runner for use with 
+This XenForo 2.x addon disables the browser triggered job runner and implements a CLI triggered job runner for use with 
 Unix cron.
 
 By [Simon Hampel](https://twitter.com/SimonHampel).
@@ -9,7 +9,7 @@ By [Simon Hampel](https://twitter.com/SimonHampel).
 Requirements
 ------------
 
-This addon requires PHP 5.4 or higher and only works on XenForo 2.0.x 
+This addon requires PHP 5.4 or higher and has been tested on XenForo 2.0.x and 2.1.x 
 
 Installation
 ------------
@@ -47,11 +47,31 @@ For example, on Ubuntu with a web server user of www-data, install a cron task b
 Edit the crontab file and add:
 
     :::bash
-    *       *       *       *       *       php <path to your forum root>/cmd.php --quiet xf:run-jobs
+    *       *       *       *       *       php /path/to/your/forum/root/cmd.php --quiet xf:run-jobs
    
 Save the crontab.
 
-This will execute the job runner every minute, checking for outstanding jobs to be run.
+__Alternative approach:__
+
+Instead of using a crontab, some Linux distributions create a well-known directory which is automatically checked for 
+cron tasks to execute. In the case of Ubuntu, you can create files in `/etc/cron.d/` where you specify the schedule, the
+user to execute the command as, and the command itself.
+
+Create a file in `/etc/cron.d/` with the following contents:
+
+	:::bash
+	* * * * * webserver-user php /path/to/your/forum/root/cmd.php --quiet xf:run-jobs
+
+... where `webserver-user` is changed to the name of the user your web server runs as and change the path to your forum 
+root.  
+
+Again, using our previous example where web server user is `www-data` and our forum root is 
+`/srv/www/xenforo/community`, I would execute the following command to create the cron file: 
+
+	:::bash
+	echo "* * * * * www-data php /srv/www/xenforo/community/cmd.php --quiet xf:run-jobs" | sudo tee -a /etc/cron.d/xenforo
+
+Both options (crontab and cron.d) will execute the job runner every minute, checking for outstanding jobs to be run.
 
 By default, the job runner will run for a maximum of 30 seconds, executing any outstanding jobs until there are no more
 runnable jobs in the queue.
