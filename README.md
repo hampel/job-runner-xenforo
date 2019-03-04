@@ -33,8 +33,10 @@ Running this command will execute any outstanding jobs and then finish with a me
 waiting to be executed or not. When executing this command from cron, it is recommended that you use the `--quiet` 
 (or `-q`) flag to suppress output. 
 
-Once you are happy that the job runner functions, you will need to create your own cron task to run it on a schedule of 
-your choosing.
+Once you are happy that the job runner functions correctly, you will need to create your own cron task to run it on a
+schedule of your choosing.
+
+__Approach #1 using crontab:__
 
 It is highly recommended that you have your cron task run as the web server user to prevent potential permission 
 problems.
@@ -51,7 +53,7 @@ Edit the crontab file and add:
    
 Save the crontab.
 
-__Alternative approach:__
+__Approach #2 using cron.d:__
 
 Instead of using a crontab, some Linux distributions create a well-known directory which is automatically checked for 
 cron tasks to execute. In the case of Ubuntu, you can create files in `/etc/cron.d/` where you specify the schedule, the
