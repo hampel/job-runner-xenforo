@@ -9,7 +9,7 @@ By [Simon Hampel](https://twitter.com/SimonHampel).
 Requirements
 ------------
 
-This addon requires PHP 5.4 or higher and has been tested on XenForo 2.0.x and 2.1.x 
+This addon requires PHP 5.4 or higher and has been tested on XenForo 2.0 and 2.1 
 
 Installation
 ------------
@@ -33,8 +33,10 @@ Running this command will execute any outstanding jobs and then finish with a me
 waiting to be executed or not. When executing this command from cron, it is recommended that you use the `--quiet` 
 (or `-q`) flag to suppress output. 
 
-Once you are happy that the job runner functions, you will need to create your own cron task to run it on a schedule of 
-your choosing.
+Once you are happy that the job runner functions correctly, you will need to create your own cron task to run it on a
+schedule of your choosing.
+
+__Approach #1 using crontab:__
 
 It is highly recommended that you have your cron task run as the web server user to prevent potential permission 
 problems.
@@ -51,7 +53,7 @@ Edit the crontab file and add:
    
 Save the crontab.
 
-__Alternative approach:__
+__Approach #2 using cron.d:__
 
 Instead of using a crontab, some Linux distributions create a well-known directory which is automatically checked for 
 cron tasks to execute. In the case of Ubuntu, you can create files in `/etc/cron.d/` where you specify the schedule, the
@@ -117,4 +119,18 @@ general it is suggested that this setting be kept to a relatively small value to
 long job may prevent other jobs from executing in a timely manner. Some experimentation may be required to find the 
 optimal value for your server load and forum size.
 
+ Usage
+ -----
+ 
+ The `run-jobs` command should be executed automatically using a cron task as per the instructions above.
+ 
+ **xf:show-jobs**
+ 
+ The `xf:show-jobs` command outputs a list of all the currently pending jobs, so you can see how full the jobs queue is.
+ 
+ By default only the next scheduled 100 jobs will be shown, you may use the `--all` option to show a complete list of 
+ all pending jobs.
+ 
+ There should always be at least one job (the main Cron job) in the list. For XF 2.1 you'll also see the upgrade check 
+ job.
  

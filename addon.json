@@ -2,8 +2,8 @@
     "legacy_addon_id": "DisableRunDeferred",
     "title": "CLI Job Runner",
     "description": "Disables the browser triggered job runner and implements a CLI triggered job runner for Unix cron",
-    "version_id": 1000170,
-    "version_string": "1.0.1",
+    "version_id": 1010070,
+    "version_string": "1.1.0",
     "dev": "Simon Hampel",
     "dev_url": "https://bitbucket.org/hampel/",
     "faq_url": "",
@@ -18,5 +18,5 @@
             "PHP 5.4+"
         ]
     },
-    "icon": "fa-calendar"
+    "icon": "fa-calendar-alt"
 }
