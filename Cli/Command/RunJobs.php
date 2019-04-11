@@ -56,6 +56,6 @@ class RunJobs extends Command
 			$output->writeln("<error>Version mismatch - upgrade pending?</error>");
 		}
 
-		return 1;
+		return 0;
 	}
 }
