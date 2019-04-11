@@ -9,7 +9,7 @@ By [Simon Hampel](https://twitter.com/SimonHampel).
 Requirements
 ------------
 
-This addon requires PHP 5.4 or higher and has been tested on XenForo 2.0.x and 2.1.x 
+This addon requires PHP 5.4 or higher and has been tested on XenForo 2.0 and 2.1 
 
 Installation
 ------------
@@ -119,4 +119,18 @@ general it is suggested that this setting be kept to a relatively small value to
 long job may prevent other jobs from executing in a timely manner. Some experimentation may be required to find the 
 optimal value for your server load and forum size.
 
+ Usage
+ -----
+ 
+ The `run-jobs` command should be executed automatically using a cron task as per the instructions above.
+ 
+ **xf:show-jobs**
+ 
+ The `xf:show-jobs` command outputs a list of all the currently pending jobs, so you can see how full the jobs queue is.
+ 
+ By default only the next scheduled 100 jobs will be shown, you may use the `--all` option to show a complete list of 
+ all pending jobs.
+ 
+ There should always be at least one job (the main Cron job) in the list. For XF 2.1 you'll also see the upgrade check 
+ job.
  
