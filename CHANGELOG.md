@@ -4,9 +4,9 @@ CHANGELOG
 1.1.0 (2019-04-11)
 ------------------
 
-* changed icon
+* changes: new icon
 * bug fix: should return 0 for successful execution
-* implemented show-jobs command
+* new feature: show-jobs command
 
 1.0.1 (2018-12-06)
 ------------------
