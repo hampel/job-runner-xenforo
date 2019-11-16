@@ -5,9 +5,15 @@ use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use XF\Cli\Command\CustomAppCommandInterface;
 
-class ShowJobs extends Command
+class ShowJobs extends Command implements CustomAppCommandInterface
 {
+	public static function getCustomAppClass()
+	{
+		return 'Hampel\JobRunner\App';
+	}
+
 	protected function configure()
 	{
 		$this
@@ -81,6 +87,7 @@ class ShowJobs extends Command
 
 		$output->writeln('');
 		$output->writeln("The current time is: " . date('d-M-Y H:i:s (\U\T\CP)', \XF::$time));
+		$output->writeln(" autoJobRun time is: " . date('d-M-Y H:i:s (\U\T\CP)', $app['job.runTime']), OutputInterface::VERBOSITY_VERBOSE);
 		$output->writeln('');
 
 		if (!$all && $count > 100)
