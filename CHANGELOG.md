@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+1.2.0 (2019-11-17)
+------------------
+
+Thanks to [@Xon](https://xenforo.com/community/members/xon.71874/) for identifying the bug fix where AJAX JSON responses
+would still trigger job.php, and for making suggestions on how to avoid unnecessary database queries and avoid running
+cron jobs unless triggered via our CLI job runner
+
+* changes: disable calculations for job auto run time to avoid unnecessary database queries
+* bug fix: disable AJAX auto job runner from triggering from AJAX JSON responses
+* changes: don't allow cron tasks to execute unless triggered via the CLI job runner
+
 1.1.0 (2019-04-11)
 ------------------
 
