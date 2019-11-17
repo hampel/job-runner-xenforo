@@ -38,6 +38,8 @@ class RunJobs extends Command implements CustomAppCommandInterface
 			$maxJobRunTime = intval($app->config('jobMaxRunTime')); // maximum time for a single job to execute
 			$maxQueueRunTime = intval($input->getOption('time')); // maximum time for the job runner to run jobs
 
+			$jobManager->setAllowCron(true);
+
 			do
 			{
 				$jobManager->runQueue(false, $maxJobRunTime);
