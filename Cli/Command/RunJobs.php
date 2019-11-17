@@ -4,9 +4,15 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use XF\Cli\Command\CustomAppCommandInterface;
 
-class RunJobs extends Command
+class RunJobs extends Command implements CustomAppCommandInterface
 {
+	public static function getCustomAppClass()
+	{
+		return 'Hampel\JobRunner\App';
+	}
+
 	protected function configure()
 	{
 		$this
@@ -31,6 +37,8 @@ class RunJobs extends Command
 			$jobManager = $app->jobManager();
 			$maxJobRunTime = intval($app->config('jobMaxRunTime')); // maximum time for a single job to execute
 			$maxQueueRunTime = intval($input->getOption('time')); // maximum time for the job runner to run jobs
+
+			$jobManager->setAllowCron(true);
 
 			do
 			{
