@@ -24,7 +24,48 @@ class Logger
 	{
 		$this->startTime = $startTime ?: microtime(true);
 	}
-	
+
+	public function logJobProgress($message, array $context = [], AbstractJob $job, $verbosity = OutputInterface::VERBOSITY_DEBUG)
+	{
+		if (!$this->output || !$this->output->isVerbose()) return;
+
+		$executionTime = $this->startTime ? microtime(true) - $this->startTime : 0;
+
+		$jobClass = get_class($job);
+
+		if (empty($message))
+		{
+			if ($executionTime > 0)
+			{
+				$message = sprintf("Job progress %01.2f seconds elapsed", $executionTime);
+			}
+			else
+			{
+				$message = "Job progress";
+			}
+		}
+
+		$extra = [
+			'job_id' => $job->getJobId(),
+			'class' => $jobClass,
+			'status_message' => $job->getStatusMessage(),
+			'data' => $job->getData(),
+		];
+
+		if ($executionTime > 0)
+		{
+			$extra['execution_time'] = number_format($executionTime, 2);
+		}
+
+		$this->log(
+			$this->classToString($jobClass, 'Job'),
+			$message,
+			$context,
+			$extra,
+			$verbosity
+		);
+	}
+
 	public function logJobCompletion(JobResult $jobResult, array $job = [])
 	{
 		if (!$this->output || !$this->output->isVerbose()) return;
@@ -71,6 +112,18 @@ class Logger
 		}
 
 		$this->output->writeln($log, $verbosity);
-		$this->output->writeln('', OutputInterface::VERBOSITY_DEBUG);
+		$this->output->writeln('', OutputInterface::VERBOSITY_VERY_VERBOSE);
+	}
+
+	protected function classToString($class, $type)
+	{
+		$parts = explode("\\{$type}\\", $class);
+		if (count($parts) != 2)
+		{
+			// already a class
+			return $class;
+		}
+
+		return "{$parts[0]}:{$parts[1]}";
 	}
 }
