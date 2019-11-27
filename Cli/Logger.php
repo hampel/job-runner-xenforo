@@ -24,10 +24,10 @@ class Logger
 	{
 		$this->startTime = $startTime ?: microtime(true);
 	}
-
+	
 	public function logJobCompletion(JobResult $jobResult, array $job = [])
 	{
-		if (!$this->output || !$this->output->isDebug()) return;
+		if (!$this->output || !$this->output->isVerbose()) return;
 
 		$executionTime = $this->startTime ? microtime(true) - $this->startTime : 0;
 
@@ -51,16 +51,26 @@ class Logger
 		$this->log($job['execute_class'], $message, $context, $job);
 	}
 
-	public function log($class, $message = '', array $context = [], array $extra = [])
+	public function log($class, $message = '', array $context = [], array $extra = [], $verbosity = OutputInterface::VERBOSITY_VERBOSE)
 	{
-		if (!$this->output || !$this->output->isDebug()) return;
+		if (!$this->output || !$this->output->isVerbose()) return;
 
 		$date = date("[Y-m-d H:i:s]", \XF::$time);
 		$context = json_encode($context, JSON_FORCE_OBJECT);
 		$extra = json_encode($extra, JSON_FORCE_OBJECT);
 
-		$this->output->writeln("{$date} {$class}: {$message} {$context} {$extra}", OutputInterface::VERBOSITY_DEBUG);
+		$log = "{$date} {$class}: {$message}";
+
+		if ($this->output->isVeryVerbose())
+		{
+			$log .= " {$context}";
+		}
+		if ($this->output->isDebug())
+		{
+			$log .= " {$extra}";
+		}
+
+		$this->output->writeln($log, $verbosity);
 		$this->output->writeln('', OutputInterface::VERBOSITY_DEBUG);
 	}
-
 }
