@@ -30,6 +30,8 @@ class RunJobs extends Command implements CustomAppCommandInterface
 	protected function execute(InputInterface $input, OutputInterface $output)
 	{
 		$app = \XF::app();
+		$app['cli.output'] = $output;
+
 		$start = microtime(true);
 
 		if (\XF::$versionId == $app->options()->currentVersionId || !\XF::config('checkVersion'))
