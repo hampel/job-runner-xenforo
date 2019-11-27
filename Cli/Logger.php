@@ -60,7 +60,7 @@ class Logger
 		$extra = json_encode($extra, JSON_FORCE_OBJECT);
 
 		$this->output->writeln("{$date} {$class}: {$message} {$context} {$extra}", OutputInterface::VERBOSITY_DEBUG);
-		$this->output->writeln('');
+		$this->output->writeln('', OutputInterface::VERBOSITY_DEBUG);
 	}
 
 }
