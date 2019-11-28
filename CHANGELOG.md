@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.3.1 (2019-11-28)
+------------------
+
+* bugfix: don't try executing logger unless we already have it set up - especially during addon installation/upgrade!
+
 1.3.0 (2019-11-28)
 ------------------
 
