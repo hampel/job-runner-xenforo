@@ -1,6 +1,0 @@
-{
-    "from_class": "XF\\Mvc\\Renderer\\Json",
-    "to_class": "Hampel\\JobRunner\\XF\\Mvc\\Renderer\\Json",
-    "execute_order": 10,
-    "active": true
-}
