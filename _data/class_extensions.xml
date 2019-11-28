@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <class_extensions>
+  <extension from_class="XF\Job\Cron" to_class="Hampel\JobRunner\XF\Job\Cron" execute_order="10" active="1"/>
   <extension from_class="XF\Job\Manager" to_class="Hampel\JobRunner\XF\Job\Manager" execute_order="10" active="1"/>
   <extension from_class="XF\Mvc\Renderer\Json" to_class="Hampel\JobRunner\XF\Mvc\Renderer\Json" execute_order="10" active="1"/>
 </class_extensions>
