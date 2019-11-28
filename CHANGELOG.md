@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+1.3.0 (2019-11-28)
+------------------
+
+* implemented debug logger for Job execution time tracking
+* extend the XF\Job\Cron class with new run function which logs execution time for cron tasks
+* added new Cli command and test job for testing purposes
+
 1.2.0 (2019-11-17)
 ------------------
 
