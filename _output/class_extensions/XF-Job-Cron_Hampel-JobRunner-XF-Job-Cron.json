@@ -1,0 +1,6 @@
+{
+    "from_class": "XF\\Job\\Cron",
+    "to_class": "Hampel\\JobRunner\\XF\\Job\\Cron",
+    "execute_order": 10,
+    "active": true
+}
