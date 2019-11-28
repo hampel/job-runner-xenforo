@@ -1,5 +1,8 @@
 <?php namespace Hampel\JobRunner\XF\Job;
 
+use Hampel\JobRunner\Cli\Logger;
+use XF\Job\JobResult;
+
 class Manager extends XFCP_Manager
 {
 	protected $allowCron = false;
@@ -31,6 +34,24 @@ class Manager extends XFCP_Manager
 			ORDER BY trigger_date
 			LIMIT 1000
 		", [\XF::$time, $manual ? 1 : 0]);
+	}
+
+	/**
+	 * @param array $job
+	 * @param int $maxRunTime
+	 *
+	 * @return JobResult
+	 */
+	public function runJobEntry(array $job, $maxRunTime)
+	{
+		/** @var Logger $logger */
+		$logger = $this->app['cli.logger'];
+		$logger->setJobStartTime();
+
+		$jobResult = parent::runJobEntry($job, $maxRunTime);
+
+		$logger->logJobCompletion($jobResult, $job);
+		return $jobResult;
 	}
 
 	public function updateNextRunTime()
