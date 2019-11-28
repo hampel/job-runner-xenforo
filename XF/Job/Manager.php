@@ -44,6 +44,8 @@ class Manager extends XFCP_Manager
 	 */
 	public function runJobEntry(array $job, $maxRunTime)
 	{
+		if (!isset($this->app['cli.logger'])) return parent::runJobEntry($job, $maxRunTime);
+
 		/** @var Logger $logger */
 		$logger = $this->app['cli.logger'];
 		$logger->setJobStartTime();
