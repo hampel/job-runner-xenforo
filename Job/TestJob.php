@@ -39,6 +39,7 @@ class TestJob extends AbstractJob
 
 	protected function log($message, array $context = [])
 	{
+		// check to see if we actually have a logger available and abort if not
 		if (!isset($this->app['cli.logger'])) return;
 
 		/** @var Logger $logger */
