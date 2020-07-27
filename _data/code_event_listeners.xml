@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<code_event_listeners>
-  <listener event_id="templater_global_data" execute_order="10" callback_class="Hampel\JobRunner\Listener" callback_method="templaterGlobalData" active="1" description="Disable runJobs trigger so we can run jobs ourselves"/>
-</code_event_listeners>
