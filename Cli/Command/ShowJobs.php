@@ -52,7 +52,7 @@ class ShowJobs extends Command implements CustomAppCommandInterface
 		if ($count == 0)
 		{
 			$output->writeln("<info>No pending jobs found</info>");
-			return 1;
+			return 0;
 		}
 
 		$output->writeln('');
@@ -98,6 +98,6 @@ class ShowJobs extends Command implements CustomAppCommandInterface
 
 		date_default_timezone_set($tz);
 
-		return 1;
+		return 0;
 	}
 }

@@ -24,6 +24,6 @@ class TestJobs extends Command
 		$app = \XF::app();
 		$app->jobManager()->enqueue("Hampel\JobRunner:TestJob", ['email' => $input->getArgument('email')]);
 
-		return 1;
+		return 0;
 	}
 }
