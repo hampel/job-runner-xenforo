@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+2.0.0b1 (2020-08-06)
+--------------------
+
+* complete rewrite for XF v2.2 - new command names; lockfile based command protection; extensive logging support
+* unit tests
+
 1.3.1 (2019-11-28)
 ------------------
 
