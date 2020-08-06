@@ -17,7 +17,7 @@ class ShowJobs extends Command implements CustomAppCommandInterface
 	protected function configure()
 	{
 		$this
-			->setName('xf:show-jobs')
+			->setName('hg:show-jobs')
 			->setDescription('Show pending jobs in the job queue')
 			->addOption(
 				'all',

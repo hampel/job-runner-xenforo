@@ -1,10 +1,12 @@
 <?php namespace Hampel\JobRunner\XF\Job;
 
-use Hampel\JobRunner\Cli\Logger;
+use Hampel\JobRunner\Cli\LoggerTrait;
 use XF\Job\JobResult;
 
 class Manager extends XFCP_Manager
 {
+	use LoggerTrait;
+
 	protected $allowCron = false;
 
 	public function setAllowCron($value)
@@ -15,16 +17,38 @@ class Manager extends XFCP_Manager
 		$this->allowCron = $value;
 	}
 
+	public function runQueue($manual, $maxRunTime)
+	{
+		$this->logVeryVerbose("Running job queue", ['maxRunTime' => $maxRunTime]);
+
+		return parent::runQueue($manual, $maxRunTime);
+	}
+
 	public function getRunnable($manual)
 	{
-		/**
-		 * Don't allow cron tasks to execute under normal conditions - unless we explicitly allow them (ie via CLI job runner)
-		 */
-		if ($manual || $this->allowCron)
+		if ($manual || (!empty($this->app->options()->jobRunTrigger) && $this->app->options()->jobRunTrigger == 'activity'))
 		{
 			return parent::getRunnable($manual);
 		}
 
+		// Make sure Crons only run if we're running from CLI job runner
+		if ($this->allowCron)
+		{
+			$runnable = parent::getRunnable($manual);
+
+			if (empty($runnable))
+			{
+				$this->logVeryVerbose("getRunnable: No runnable jobs found");
+			}
+			else
+			{
+				$this->logVeryVerbose("getRunnable: Getting list of runnable jobs", array_slice($runnable, 0, 25));
+			}
+
+			return $runnable;
+		}
+
+		// get Runnable jobs excluding cron jobs
 		return $this->db->fetchAll("
 			SELECT *
 			FROM xf_job
@@ -36,6 +60,13 @@ class Manager extends XFCP_Manager
 		", [\XF::$time, $manual ? 1 : 0]);
 	}
 
+	public function queuePending($manual)
+	{
+		$this->debug("queuePending - counting runnable jobs");
+
+		return parent::queuePending($manual);
+	}
+
 	/**
 	 * @param array $job
 	 * @param int $maxRunTime
@@ -44,22 +75,39 @@ class Manager extends XFCP_Manager
 	 */
 	public function runJobEntry(array $job, $maxRunTime)
 	{
-		if (!isset($this->app['cli.logger'])) return parent::runJobEntry($job, $maxRunTime);
+		$this->debug("runJobEntry");
 
-		/** @var Logger $logger */
-		$logger = $this->app['cli.logger'];
-		$logger->setJobStartTime();
+		return parent::runJobEntry($job, $maxRunTime);
+	}
 
-		$jobResult = parent::runJobEntry($job, $maxRunTime);
+	protected function runJobInternal(array $job, $maxRunTime)
+	{
+		$this->debug("runJobInternal");
 
-		$logger->logJobCompletion($jobResult, $job);
+		if (!$logger = $this->getLogger()) return parent::runJobInternal($job, $maxRunTime);
+		$logger->logJobStart(self::class, $job);
+
+		$jobResult = parent::runJobInternal($job, $maxRunTime);
+
+		$logger->logJobCompletion(self::class, $job['execute_class'], $jobResult);
+
 		return $jobResult;
 	}
 
+	/**
+	 * Over-ride default functionality for setting autoJobRun to avoid database queries
+	 */
 	public function updateNextRunTime()
 	{
+		$this->debug("updateNextRunTime");
+
+		if (!empty($this->app->options()->jobRunTrigger) && $this->app->options()->jobRunTrigger == 'activity')
+		{
+			return parent::updateNextRunTime();
+		}
+
 		/**
-		 * just return the current time, we're actively ignoring the next run time for jobs
+		 * if we're doing server based job triggers - just return the current time
 		 *
 		 * we want this to be a valid response so things don't fall over unexpectedly, but we don't want to do any
 		 * database queries

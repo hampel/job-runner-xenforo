@@ -10,7 +10,7 @@ class TestJobs extends Command
 	protected function configure()
 	{
 		$this
-			->setName('xf:test-jobs')
+			->setName('hg:test-jobs')
 			->setDescription('Generate a test job')
 			->addArgument(
 				'email',

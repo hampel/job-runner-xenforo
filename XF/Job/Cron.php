@@ -1,11 +1,17 @@
 <?php namespace Hampel\JobRunner\XF\Job;
 
+use Hampel\JobRunner\Cli\LoggerTrait;
+
 class Cron extends XFCP_Cron
 {
+	use LoggerTrait;
+
 	public function run($maxRunTime)
 	{
 		// JobRunner addon
-		if (!isset($this->app['cli.logger'])) return parent::run($maxRunTime);
+		// if we don't have our logger available, something went wrong - just run the parent version of the Cron job
+		if (!$logger = $this->getLogger()) return parent::run($maxRunTime);
+		$this->debug("running Cron Job");
 		// end JobRunner addon
 
 		$start = microtime(true);
@@ -16,21 +22,33 @@ class Cron extends XFCP_Cron
 		$entries = $this->app->finder('XF:CronEntry')
 			->whereAddOnActive()
 			->where('active', 1)
-			->where('next_run', '<', \XF::$time)
-			->order('next_run');
+			->where('next_run', '<=', \XF::$time) // core bugfix '<' should be '<='
+			->order('next_run')
+			->fetch();
 
-		foreach ($entries->fetch() AS $entry)
+		if ($entries->count() == 0)
 		{
+			$this->log("No cron entries found");
+		}
+
+		foreach ($entries AS $entry)
+		{
+			// JobRunner addon
+			$taskStart = microtime(true);
+
+			$logger->logCronStart(self::class, $entry);
+			// end JobRunner addon
+
 			$hasCallback = $entry->hasCallback();
 
 			if (!$cronService->updateCronRunTimeAtomic($entry))
 			{
+				// JobRunner addon
+				$this->logNormal("Could not update run time for cron [{$entry['entry_id']}], skipping");
+				// end JobRunner addon
+
 				continue;
 			}
-
-			// JobRunner addon
-			$taskStart = microtime(true);
-			// end JobRunner addon
 
 			try
 			{
@@ -49,8 +67,7 @@ class Cron extends XFCP_Cron
 			}
 
 			// JobRunner addon
-			$execution_time = number_format(microtime(true) - $taskStart, 2);
-			$this->log("Cron entry {$entry['cron_class']}::{$entry['cron_method']} executed in {$execution_time} seconds", $entry->toArray());
+			$this->log(sprintf("Cron entry [%s] executed in %01.2f seconds", $entry['entry_id'], microtime(true) - $taskStart));
 			// end JobRunner addon
 
 			if (microtime(true) - $start >= $maxRunTime)
@@ -60,17 +77,12 @@ class Cron extends XFCP_Cron
 		}
 
 		$result = $this->resume();
+
+		// JobRunner addon
+		$this->logVeryVerbose("Finished running all Cron tasks - now setting continue date");
+		// end JobRunner addon
+
 		$result->continueDate = $cronService->getMinimumNextRunTime();
 		return $result;
-	}
-
-	protected function log($message, array $context = [])
-	{
-		// check to see if we actually have a logger available and abort if not
-		if (!isset($this->app['cli.logger'])) return;
-
-		/** @var Logger $logger */
-		$logger = $this->app['cli.logger'];
-		$logger->log("XF\Job\Cron", $message, $context);
 	}
 }

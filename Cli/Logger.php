@@ -1,6 +1,7 @@
 <?php namespace Hampel\JobRunner\Cli;
 
 use Symfony\Component\Console\Output\OutputInterface;
+use XF\Entity\CronEntry;
 use XF\Job\AbstractJob;
 use XF\Job\JobResult;
 
@@ -18,11 +19,23 @@ class Logger
 	}
 
 	/**
+	 * @param array job - the job we're starting
 	 * @param float|null $startTime - pass `microtime(true)` at start of execution
 	 */
-	public function setJobStartTime($startTime = null)
+	public function logJobStart($class, array $job, $startTime = null)
 	{
 		$this->startTime = $startTime ?: microtime(true);
+
+		if (!$this->output || !$this->output->isVerbose()) return;
+
+		if (!empty($job))
+		{
+			$job['execute_data'] = unserialize($job['execute_data']);
+			$job['trigger_date_formatted'] = date("Y-m-d H:i:s T", $job['trigger_date']);
+			$job['last_run_date_formatted'] = $job['last_run_date'] ? date("Y-m-d H:i:s T", $job['last_run_date']) : "";
+
+			$this->log($class, "Starting Job [{$job['execute_class']}]", $job);
+		}
 	}
 
 	public function logJobProgress($message, array $context = [], AbstractJob $job, $verbosity = OutputInterface::VERBOSITY_DEBUG)
@@ -66,13 +79,13 @@ class Logger
 		);
 	}
 
-	public function logJobCompletion(JobResult $jobResult, array $job = [])
+	public function logJobCompletion($class, $jobClass, JobResult $jobResult)
 	{
 		if (!$this->output || !$this->output->isVerbose()) return;
 
 		$executionTime = $this->startTime ? microtime(true) - $this->startTime : 0;
 
-		$message = sprintf("Job executed in %01.2f seconds", $executionTime);
+		$message = sprintf("Job [{$jobClass}] executed in %01.2f seconds", $executionTime);
 
 		$context = [
 			'completed' => $jobResult->completed,
@@ -82,21 +95,23 @@ class Logger
 			'statusMessage' => $jobResult->statusMessage,
 		];
 
-		if (!empty($job))
-		{
-			$job['execute_data'] = unserialize($job['execute_data']);
-			$job['trigger_date_formatted'] = date("Y-m-d H:i:s T", $job['trigger_date']);
-			$job['last_run_date_formatted'] = $job['last_run_date'] ? date("Y-m-d H:i:s T", $job['last_run_date']) : "";
-		}
+		$this->log($class, $message, $context);
+	}
 
-		$this->log($job['execute_class'], $message, $context, $job);
+	public function logCronStart($class, CronEntry $cronEntry)
+	{
+		if (!$this->output || !$this->output->isVerbose()) return;
+
+		$context = $cronEntry->toArray();
+		$context['next_run_formatted'] = date("Y-m-d H:i:s T", $context['next_run']);
+		$this->log($class, "Executing cron entry [{$cronEntry['entry_id']}]", $context);
 	}
 
 	public function log($class, $message = '', array $context = [], array $extra = [], $verbosity = OutputInterface::VERBOSITY_VERBOSE)
 	{
 		if (!$this->output || !$this->output->isVerbose()) return;
 
-		$date = date("[Y-m-d H:i:s]", \XF::$time);
+		$date = date("[Y-m-d H:i:s]");
 		$context = json_encode($context, JSON_FORCE_OBJECT);
 		$extra = json_encode($extra, JSON_FORCE_OBJECT);
 
@@ -112,7 +127,17 @@ class Logger
 		}
 
 		$this->output->writeln($log, $verbosity);
-		$this->output->writeln('', OutputInterface::VERBOSITY_VERY_VERBOSE);
+		$this->output->writeln('', $verbosity);
+	}
+
+	public function debug($class, $message = '', array $context = [])
+	{
+		$this->log($class, $message, $context, [], OutputInterface::VERBOSITY_DEBUG);
+	}
+
+	public function isVeryVerbose()
+	{
+		return $this->output && $this->output->isVeryVerbose();
 	}
 
 	protected function classToString($class, $type)

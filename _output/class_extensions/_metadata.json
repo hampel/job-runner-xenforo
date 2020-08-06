@@ -7,5 +7,8 @@
     },
     "XF-Mvc-Renderer-Json_Hampel-JobRunner-XF-Mvc-Renderer-Json.json": {
         "hash": "eff802e5860edc9aa8c2e5edfced96a8"
+    },
+    "XF-Service-CronEntry-CalculateNextRun_Hampel-JobRunner-XF-Service-CronEntry-CalculateNextRun.json": {
+        "hash": "ed784d21d6894767c9faa603f1dc4cf0"
     }
 }

@@ -1,5 +1,7 @@
 <?php namespace Hampel\JobRunner\Cli\Command;
 
+use Hampel\JobRunner\Cli\LoggerTrait;
+use Hampel\JobRunner\Util\Lock;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
@@ -8,6 +10,8 @@ use XF\Cli\Command\CustomAppCommandInterface;
 
 class RunJobs extends Command implements CustomAppCommandInterface
 {
+	use LoggerTrait;
+
 	public static function getCustomAppClass()
 	{
 		return 'Hampel\JobRunner\App';
@@ -16,13 +20,19 @@ class RunJobs extends Command implements CustomAppCommandInterface
 	protected function configure()
 	{
 		$this
-			->setName('xf:run-jobs')
-			->setDescription('Run pending jobs in the job queue')
+			->setName('hg:run-jobs')
+			->setDescription('Runs any outstanding jobs with debug logging support.')
+			->addOption(
+				'manual-only',
+				null,
+				InputOption::VALUE_NONE,
+				'Ensures that only manually triggered jobs are run'
+			)
 			->addOption(
 				'time',
-				null,
+				't',
 				InputOption::VALUE_OPTIONAL,
-				"Time in seconds to limit job runner execution to",
+				"Time in seconds to limit job runner execution to (max: 900)",
 				30
 			);
 	}
@@ -30,42 +40,81 @@ class RunJobs extends Command implements CustomAppCommandInterface
 	protected function execute(InputInterface $input, OutputInterface $output)
 	{
 		$app = \XF::app();
+		$jobManager = $app->jobManager();
+
+		if (!$jobManager->canRunJobs())
+		{
+			$output->writeln('<error>Jobs cannot be run at this time.</error>');
+			return 1;
+		}
+
 		$app['cli.output'] = $output;
 
-		$start = microtime(true);
+		$maxRunTime = $app->config('jobMaxRunTime'); // maximum time for a single job to execute
+		$maxQueueRunTime = intval($input->getOption('time')); // maximum time for the job runner to run jobs
+		$manualOnly = $input->getOption('manual-only');
 
-		if (\XF::$versionId == $app->options()->currentVersionId || !\XF::config('checkVersion'))
+		if ($maxQueueRunTime > 600)
 		{
-			$jobManager = $app->jobManager();
-			$maxJobRunTime = intval($app->config('jobMaxRunTime')); // maximum time for a single job to execute
-			$maxQueueRunTime = intval($input->getOption('time')); // maximum time for the job runner to run jobs
+			// limit queue run time to 10 minutes
+			$maxQueueRunTime = 600;
+		}
 
-			$jobManager->setAllowCron(true);
+		if (!$manualOnly && !Lock::get($maxQueueRunTime))
+		{
+			$output->writeln('<error>JobRunner already running.</error>');
+			return 2;
+		}
 
-			do
-			{
-				$jobManager->runQueue(false, $maxJobRunTime);
-				$more = $jobManager->queuePending(false);
+		$time = time();
+		$this->log("Run Jobs starting", compact('maxRunTime', 'maxQueueRunTime', 'manualOnly', 'time'));
 
-				// limit overall memory usage by cleaning up cached entities
-				$app->em()->clearEntityCache();
+		$start = microtime(true);
+		$more = false;
 
-			} while ($more && (microtime(true) - $start < $maxQueueRunTime));
+		$jobManager->setAllowCron(true);
 
-			if ($more)
-			{
-				$output->writeln("<info>Maximum runtime ({$maxQueueRunTime} seconds) expired with more runnable jobs pending</info>");
-			}
-			else
-			{
-				$output->writeln("<info>No more runnable jobs pending</info>");
-			}
+		do
+		{
+			$queueRunTime = microtime(true) - $start; // how long we've been processing jobs
+			$remaining = $maxQueueRunTime - $queueRunTime; // how long we've got left to process jobs
+
+			$this->logVeryVerbose(sprintf("Remaining time: %01.2f seconds", $remaining));
+
+			if ($remaining < 1) break; // stop if we're out of time
+
+			$jobManager->runQueue($manualOnly, min($remaining, $maxRunTime));
+
+			// keep the memory limit down on long running jobs
+			$app->em()->clearEntityCache();
+
+			$more = $jobManager->queuePending($manualOnly);
+		}
+		while ($more);
+
+		if (!$manualOnly)
+		{
+			Lock::remove(); // remove the lock now that we're done
+		}
+
+		if ($more)
+		{
+			$output->writeln("<info>Maximum runtime ({$maxQueueRunTime} seconds) expired with more runnable jobs pending.</info>", OutputInterface::VERBOSITY_VERBOSE);
 		}
 		else
 		{
-			$output->writeln("<error>Version mismatch - upgrade pending?</error>");
+			$output->writeln(sprintf("<info>Total execution time: %01.2f seconds</info>", microtime(true) - $start), OutputInterface::VERBOSITY_VERBOSE);
+			$output->writeln("<info>All outstanding jobs have run.</info>");
 		}
 
 		return 0;
 	}
+
+//	// override function in trait because we don't have $this->app available
+//	private function getLogger()
+//	{
+//		$app = \XF::app();
+//
+//		return $app['cli.logger'] ?? false;
+//	}
 }
