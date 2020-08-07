@@ -109,12 +109,4 @@ class RunJobs extends Command implements CustomAppCommandInterface
 
 		return 0;
 	}
-
-//	// override function in trait because we don't have $this->app available
-//	private function getLogger()
-//	{
-//		$app = \XF::app();
-//
-//		return $app['cli.logger'] ?? false;
-//	}
 }
