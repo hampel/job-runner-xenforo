@@ -12,4 +12,4 @@ By [Simon Hampel](https://twitter.com/SimonHampel).
 Requirements
 ------------
 
-This addon requires PHP 7.0 or higher and XenForo 2.2 beta 1 or higher 
+This addon requires PHP 7.0 or higher and XenForo 2.2+
