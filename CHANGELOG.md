@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2.0.0b2 (2020-08-07)
+--------------------
+
+* remove redundant class extension thanks to XF 2.2b2
+
 2.0.0b1 (2020-08-06)
 --------------------
 
