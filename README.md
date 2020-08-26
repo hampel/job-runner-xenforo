@@ -1,7 +1,7 @@
-CLI Job Runner for XenForo 2.x
+CLI Job Runner for XenForo 2.1
 ==============================
 
-This XenForo 2.x addon disables the browser triggered job runner and implements a CLI triggered job runner for use with 
+This XenForo 2.1 addon disables the browser triggered job runner and implements a CLI triggered job runner for use with 
 Unix cron.
 
 By [Simon Hampel](https://twitter.com/SimonHampel).
@@ -9,7 +9,7 @@ By [Simon Hampel](https://twitter.com/SimonHampel).
 Requirements
 ------------
 
-This addon requires PHP 5.4 or higher and has been tested on XenForo 2.0 and 2.1 
+This addon requires PHP 7.0.0 or higher and has been tested on XenForo 2.1.10 
 
 Installation
 ------------
@@ -22,12 +22,12 @@ installation steps is critical to ensure your forum continues to function normal
 First, you should test that your job runner is functioning - execute the following command from your CLI:
 
 	:::bash
-	$ php <path to your forum root>/cmd.php xf:run-jobs
+	$ php <path to your forum root>/cmd.php hg:run-jobs
 
 For example, if your forum root is `/srv/www/xenforo/community`, then the job runner command would be:
 
 	:::bash
-	$ php /srv/www/xenforo/community/cmd.php xf:run-jobs
+	$ php /srv/www/xenforo/community/cmd.php hg:run-jobs
 
 Running this command will execute any outstanding jobs and then finish with a message about whether there are more jobs
 waiting to be executed or not. When executing this command from cron, it is recommended that you use the `--quiet` 
@@ -49,7 +49,7 @@ For example, on Ubuntu with a web server user of www-data, install a cron task b
 Edit the crontab file and add:
 
     :::bash
-    *       *       *       *       *       php /path/to/your/forum/root/cmd.php --quiet xf:run-jobs
+    *       *       *       *       *       php /path/to/your/forum/root/cmd.php --quiet hg:run-jobs
    
 Save the crontab.
 
@@ -62,7 +62,7 @@ user to execute the command as, and the command itself.
 Create a file in `/etc/cron.d/` with the following contents:
 
 	:::bash
-	* * * * * webserver-user php /path/to/your/forum/root/cmd.php --quiet xf:run-jobs
+	* * * * * webserver-user php /path/to/your/forum/root/cmd.php --quiet hg:run-jobs
 
 ... where `webserver-user` is changed to the name of the user your web server runs as and change the path to your forum 
 root.  
@@ -71,7 +71,7 @@ Again, using our previous example where web server user is `www-data` and our fo
 `/srv/www/xenforo/community`, I would execute the following command to create the cron file: 
 
 	:::bash
-	echo "* * * * * www-data php /srv/www/xenforo/community/cmd.php --quiet xf:run-jobs" | sudo tee -a /etc/cron.d/xenforo
+	echo "* * * * * www-data php /srv/www/xenforo/community/cmd.php --quiet hg:run-jobs" | sudo tee -a /etc/cron.d/xenforo
 
 Both options (crontab and cron.d) will execute the job runner every minute, checking for outstanding jobs to be run.
 
@@ -87,7 +87,7 @@ line.
 For example, to allow the job runner to execute for a maximum of 45 seconds:
 
 	:::bash
-	$ php <path to your forum root>/cmd.php --time=45 xf:run-jobs
+	$ php <path to your forum root>/cmd.php --time=45 hg:run-jobs
 
 It is not recommended that you allow the job runner to run for longer than the period between cron triggers. For
 example, the above cron task example will execute the job runner every minute, so setting the maximum run time to more
@@ -101,7 +101,7 @@ For example, to run the cron task every 5 minutes, allowing the job runner to ex
 the following cron command:
 
     :::bash
-    */5       *       *       *       *       php <path to your forum root>/cmd.php --quiet --time=240 xf:run-jobs
+    */5       *       *       *       *       php <path to your forum root>/cmd.php --quiet --time=240 hg:run-jobs
 
 For further customisation of your job execution, you may also adjust the maximum time that each job is permitted to run.
 This is configured via a [XenForo config.php Option](https://xenforo.com/xf2-docs/manual/config/#other-variables):
@@ -140,7 +140,7 @@ optimal value for your server load and forum size.
  v1.3 adds new debugging tools to help identify issues with Jobs and Cron tasks.
  
  To run in debug mode, first disable the Unix cron which runs jobs automatically and then use the verbosity options 
-(Verbose: `-v`, Very verbose:`-vv` or Debug: `-vvv`) for the `xf:run-jobs` command to specify the level of output to 
+(Verbose: `-v`, Very verbose:`-vv` or Debug: `-vvv`) for the `hg:run-jobs` command to specify the level of output to 
 show on the console.
 
 Output is to the console and is in a format similar to that used by the Monolog library (although we do not use Monolog
@@ -149,7 +149,7 @@ to generate the output).
 For example, Verbose option `-v`:
  
  ```bash
-$ php cmd.php xf:run-jobs -v
+$ php cmd.php hg:run-jobs -v
 [2019-11-27 23:53:09] XF\Job\Cron: Cron entry XF\Cron\CleanUp::runUserDowngrade executed in 0.01 seconds
 [2019-11-27 23:53:09] XF\Job\Cron: Cron entry Hampel\LogDigest\Cron\SendLogs::serverError executed in 0.00 seconds
 [2019-11-27 23:53:09] XF\Job\Cron: Cron entry XF\Cron\MemberStats::rebuildMemberStatsCache executed in 0.00 seconds
@@ -165,7 +165,7 @@ No more runnable jobs pending
 The Very Verbose option `-vv` adds context, typically about the `JobResult`:
 
 ```bash
-$ php cmd.php xf:run-jobs -vv
+$ php cmd.php hg:run-jobs -vv
 [2019-11-27 23:49:49] XF\Job\Cron: Cron entry Hampel\Slack\Cron\NotifyLogs::notify executed in 0.01 seconds {"entry_id":"slackNotifyServerErrors","cron_class":"Hampel\\Slack\\Cron\\NotifyLogs","cron_method":"notify","run_rules":{"day_type":"dom","dom":{"0":-1},"hours":{"0":-1},"minutes":{"0":-1}},"active":true,"next_run":1574898543,"addon_id":"Hampel\/Slack"}
 
 [2019-11-27 23:49:49] XF\Job\Cron: Cron entry Hampel\SparkPost\Cron\MessageEvents::fetchMessageEvents executed in 0.00 seconds {"entry_id":"sparkpostMessageEvents","cron_class":"Hampel\\SparkPost\\Cron\\MessageEvents","cron_method":"fetchMessageEvents","run_rules":{"day_type":"dom","dom":{"0":-1},"hours":{"0":-1},"minutes":{"0":19,"1":49}},"active":true,"next_run":1574898543,"addon_id":"Hampel\/SparkPost"}
@@ -180,7 +180,7 @@ No more runnable jobs pending
 And finally the Debug option `-vvv` adds extra information about the job:
 
 ```bash
-$ php cmd.php xf:run-jobs -vvv
+$ php cmd.php hg:run-jobs -vvv
 [2019-11-27 23:48:03] XF\Job\Cron: Cron entry XF\Cron\Feeder::importFeeds executed in 0.01 seconds {"entry_id":"feeder","cron_class":"XF\\Cron\\Feeder","cron_method":"importFeeds","run_rules":{"day_type":"dom","dom":{"0":-1},"hours":{"0":-1},"minutes":{"0":2,"1":12,"2":22,"3":32,"4":42,"5":52}},"active":true,"next_run":1574879524,"addon_id":"XF"} {}
 
 [2019-11-27 23:48:03] XF\Job\Cron: Cron entry XF\Cron\Counters::rebuildForumStatistics executed in 0.02 seconds {"entry_id":"forumStatistics","cron_class":"XF\\Cron\\Counters","cron_method":"rebuildForumStatistics","run_rules":{"day_type":"dom","dom":{"0":-1},"hours":{"0":-1},"minutes":{"0":3,"1":13,"2":23,"3":33,"4":43,"5":53}},"active":true,"next_run":1574879584,"addon_id":"XF"} {}
@@ -254,7 +254,7 @@ For example - see the test job included in this addon `Hampel\JobRunner\Job\Test
 The above code will generate the following output when the Job Runner is in debug mode:
 
 ```bash
-$ php cmd.php xf:run-jobs -vvv
+$ php cmd.php hg:run-jobs -vvv
 [2019-11-28 00:26:21] Hampel\JobRunner:TestJob: About to start test job {"email":"foo@example.com"} {"job_id":17,"class":"Hampel\\JobRunner\\Job\\TestJob","status_message":"Testing jobs","data":{"email":"foo@example.com"},"execution_time":"0.00"}
 
 [2019-11-28 00:26:21] Hampel\JobRunner:TestJob: Sent mail {"sent":1} {"job_id":17,"class":"Hampel\\JobRunner\\Job\\TestJob","status_message":"Testing jobs","data":{"email":"foo@example.com"},"execution_time":"0.95"}
