@@ -1,0 +1,11 @@
+{
+	"require-dev": {
+		"hampel/xenforo-test-framework": "^1.0",
+		"league/flysystem-memory": "^1.0"
+	},
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    }
+}
