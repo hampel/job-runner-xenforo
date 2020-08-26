@@ -17,7 +17,7 @@ class Manager extends XFCP_Manager
 		$this->allowCron = $value;
 	}
 
-	public function canRunJobs()
+	public function canRunJobs() : bool
 	{
 		return (\XF::$versionId == $this->app->options()->currentVersionId || !$this->app->config('checkVersion'));
 	}
