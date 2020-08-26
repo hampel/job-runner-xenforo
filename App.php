@@ -17,7 +17,7 @@ class App extends \XF\Cli\App
 		 * This also avoids having the autoJobRun registry lookup fail, causing database queries when running
 		 * \XF\Job\Manager::updateNextRunTime
 		 */
-		$container['job.runTime'] = \XF::$time + (10*60); // make sure we never run jobs automatically - add 10 minutes to next run time!
+		$container['job.runTime'] = \XF::$time + (30*60); // make sure we never run jobs automatically - add 30 minutes to next run time!
 
 		$container['cli.output'] = null; // we'll need to set this as to our OutputInterface from our Cli command before we call our logger
 

@@ -1,0 +1,38 @@
+{
+    "hampel_activity_based_trigger.txt": {
+        "global_cache": false,
+        "version_id": 1030170,
+        "version_string": "1.3.1",
+        "hash": "4ce1dcd09b61ed85f4a9afbc0713249f"
+    },
+    "hampel_server_based_trigger.txt": {
+        "global_cache": false,
+        "version_id": 1030170,
+        "version_string": "1.3.1",
+        "hash": "4a5c60a357c0e0a7c41d969f88b9ef65"
+    },
+    "option.jobRunTrigger.txt": {
+        "global_cache": false,
+        "version_id": 1030170,
+        "version_string": "1.3.1",
+        "hash": "716da0dbc95250e4e0b2a6b6a7bbbdbb"
+    },
+    "option_explain.jobRunTrigger.txt": {
+        "global_cache": false,
+        "version_id": 1030170,
+        "version_string": "1.3.1",
+        "hash": "adc72b53f96db995cf61ea43b47f817d"
+    },
+    "option_group.hampelJobRunner.txt": {
+        "global_cache": false,
+        "version_id": 1030170,
+        "version_string": "1.3.1",
+        "hash": "63354857c563d593b73225fdc003fb30"
+    },
+    "option_group_description.hampelJobRunner.txt": {
+        "global_cache": false,
+        "version_id": 1030170,
+        "version_string": "1.3.1",
+        "hash": "ba253c738baa994124a8cd82bd06bd41"
+    }
+}

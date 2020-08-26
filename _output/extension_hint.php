@@ -13,3 +13,8 @@ namespace Hampel\JobRunner\XF\Mvc\Renderer
 {
 	class XFCP_Json extends \XF\Mvc\Renderer\Json {}
 }
+
+namespace Hampel\JobRunner\XF\Service\CronEntry
+{
+	class XFCP_CalculateNextRun extends \XF\Service\CronEntry\CalculateNextRun {}
+}

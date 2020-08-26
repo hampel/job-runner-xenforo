@@ -1,0 +1,6 @@
+{
+    "from_class": "XF\\Service\\CronEntry\\CalculateNextRun",
+    "to_class": "Hampel\\JobRunner\\XF\\Service\\CronEntry\\CalculateNextRun",
+    "execute_order": 10,
+    "active": true
+}

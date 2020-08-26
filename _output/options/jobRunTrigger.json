@@ -1,0 +1,12 @@
+{
+    "edit_format": "radio",
+    "edit_format_params": "activity={{ phrase('hampel_activity_based_trigger') }}\nserver={{ phrase('hampel_server_based_trigger') }}",
+    "data_type": "string",
+    "sub_options": [],
+    "validation_class": "",
+    "validation_method": "",
+    "default_value": "activity",
+    "relations": {
+        "hampelJobRunner": 1
+    }
+}

@@ -11,7 +11,14 @@ class Json extends XFCP_Json
 		 *
 		 * Do NOT disable autoBlocking or manual jobs - we need those to run now
 		 */
-		$content['job']['auto'] = false;
+		if (isset($content['job']['auto']) && $content['job']['auto'] && \XF::options()->jobRunTrigger == 'activity')
+		{
+			$content['job']['auto'] = true;
+		}
+		else
+		{
+			$content['job']['auto'] = false;
+		}
 
 		return $content;
 	}
