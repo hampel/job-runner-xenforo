@@ -31,7 +31,7 @@ class Manager extends XFCP_Manager
 
 	public function getRunnable($manual)
 	{
-		if ($manual || (!empty($this->app->options()->jobRunTrigger) && $this->app->options()->jobRunTrigger == 'activity'))
+		if ($manual || (!empty($this->app->options()->hgJobRunTrigger) && $this->app->options()->hgJobRunTrigger == 'activity'))
 		{
 			return parent::getRunnable($manual);
 		}
@@ -106,7 +106,7 @@ class Manager extends XFCP_Manager
 	{
 		$this->debug("updateNextRunTime");
 
-		if (!empty($this->app->options()->jobRunTrigger) && $this->app->options()->jobRunTrigger == 'activity')
+		if (!empty($this->app->options()->hgJobRunTrigger) && $this->app->options()->hgJobRunTrigger == 'activity')
 		{
 			return parent::updateNextRunTime();
 		}
