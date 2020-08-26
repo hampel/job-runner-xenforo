@@ -39,6 +39,14 @@ class RunJobs extends Command implements CustomAppCommandInterface
 
 	protected function execute(InputInterface $input, OutputInterface $output)
 	{
+        if (\XF::$versionId > 2020000)
+        {
+        	$message = 'This version of Hampel/JobRunner is not compatible with XenForo v2.2 - please upgrade to v2.x of the JobRunner addon';
+        	\XF::logError($message);
+        	$output->writeln("<error>{$message}</error>");
+        	return 1;
+        }
+
 		$app = \XF::app();
 		$jobManager = $app->jobManager();
 
