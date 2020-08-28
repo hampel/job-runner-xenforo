@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.4.2 (2020-08-29)
+------------------
+
+* prevent JobRunner 1.x from being installed on XenForo 2.2
+
 1.4.1 (2020-08-26)
 ------------------
 
