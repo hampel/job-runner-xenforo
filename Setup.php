@@ -30,9 +30,9 @@ class Setup extends AbstractSetup
 	 */
 	public function checkRequirements(&$errors = [], &$warnings = [])
 	{
-		if (\XF::$version >= 2020000)
+		if (\XF::$versionId >= 2020000)
 		{
-			$errors[] = 'This version of Hampel/JobRunner is not compatible with XenForo v2.2 - please upgrade to v2.x of the JobRunner addon';
+			$errors[] = 'This version of Hampel/JobRunner is not compatible with XenForo v2.2 - please install v2.x of the JobRunner addon';
 		}
 	}
 }
