@@ -5,15 +5,9 @@ use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use XF\Cli\Command\CustomAppCommandInterface;
 
-class ShowJobs extends Command implements CustomAppCommandInterface
+class ShowJobs extends Command
 {
-	public static function getCustomAppClass()
-	{
-		return 'Hampel\JobRunner\App';
-	}
-
 	protected function configure()
 	{
 		$this
@@ -30,7 +24,6 @@ class ShowJobs extends Command implements CustomAppCommandInterface
 	protected function execute(InputInterface $input, OutputInterface $output)
 	{
 		$app = \XF::app();
-		$start = microtime(true);
 
 		$all = $input->getOption('all');
 		if ($all)
