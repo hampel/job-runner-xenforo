@@ -67,7 +67,7 @@ class RunCron extends Command
 		}
 		catch (\Exception $e)
 		{
-			$this->app->logException($e, true);
+			\XF::logException($e, true);
 
 			$output->writeln("<error>Exception running cron: " . $e->getMessage() . "</error>");
 			return 1;
