@@ -41,7 +41,7 @@ class ShowCrons extends Command
 
 		$finder = \XF::finder('XF:CronEntry')
 		             ->with('AddOn')
-		             ->where('AddOn.active', 1);
+		             ->whereAddOnActive();
 
 		switch($sort) {
 			case 'id':
