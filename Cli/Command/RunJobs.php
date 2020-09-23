@@ -83,6 +83,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 
 			// keep the memory limit down on long running jobs
 			$app->em()->clearEntityCache();
+			\XF::updateTime();
 
 			$more = $jobManager->queuePending($manualOnly);
 		}
