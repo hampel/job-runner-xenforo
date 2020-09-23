@@ -35,7 +35,7 @@ class RunCron extends Command
 
 		$finder = \XF::finder('XF:CronEntry')
 		            ->whereAddOnActive()
-		            ->where('entry_id', $id);
+		            ->whereId($id);
 
 		if (!$force)
 		{
