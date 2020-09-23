@@ -18,6 +18,11 @@ trait LoggerTrait
 		$logger->log(get_called_class(), $message, $context, $extra, $verbosity);
 	}
 
+	private function logQuiet($message, array $context = [])
+	{
+		$this->log($message, $context, [], OutputInterface::VERBOSITY_QUIET);
+	}
+
 	private function logNormal($message, array $context = [])
 	{
 		$this->log($message, $context, [], OutputInterface::VERBOSITY_NORMAL);
