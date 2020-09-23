@@ -1,6 +1,7 @@
 {
 	"require-dev": {
-		"hampel/xenforo-test-framework": "^1.0",
+		"php": ">=7.0.0",
+		"hampel/xenforo-test-framework": "^2.0",
 		"league/flysystem-memory": "^1.0"
 	},
     "autoload-dev": {
