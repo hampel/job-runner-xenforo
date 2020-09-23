@@ -1,141 +1,141 @@
 <?php namespace Tests\Unit;
 
+use Hampel\JobRunner\Cli\Logger;
 use Hampel\JobRunner\Util\Lock;
 use League\Flysystem\FileNotFoundException;
+use Mockery as m;
 use Tests\TestCase;
 
 class LockTest extends TestCase
 {
+	protected $lockFile = 'internal-data://foo.lock';
+
+	/** @var Lock */
+	protected $lock;
+
+	/** @var Logger */
+	protected $logger;
+
+	public function setUp() : void
+	{
+		parent::setUp();
+
+		$this->swapFs('internal-data');
+
+		$this->logger = m::mock(Logger::class);
+
+		$this->lock = new Lock($this->lockFile, $this->app()->fs(), $this->logger);
+	}
+
 	public function test_write_writes_file()
 	{
-		$this->swapFs('internal-data');
-		$time = time();
-		$this->setTestTime($time);
+		$this->assertFsHasNot($this->lockFile);
 
-		$this->assertFsHasNot(Lock::$lockFile);
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'writing lock', m::any(), [], m::any())->once();
 
-		Lock::write(10);
-		$this->assertFsHas(Lock::$lockFile);
-		$this->assertEquals($time + 10 + 30, \XF::fs()->read(Lock::$lockFile));
+		$this->lock->write(100000, 600);
+		$this->assertFsHas($this->lockFile);
+		$this->assertEquals(100630, \XF::fs()->read($this->lockFile));
 	}
 
 	public function test_write_updates_file_when_lock_exists()
 	{
-		$this->swapFs('internal-data');
-		$time = time();
-		$this->setTestTime($time);
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'updating lock', m::any(), [], m::any())->once();
 
-		$this->assertFsHasNot(Lock::$lockFile);
-		\XF::fs()->write(Lock::$lockFile, 'foo');
-		$this->assertFsHas(Lock::$lockFile);
+		$this->assertFsHasNot($this->lockFile);
+		\XF::fs()->write($this->lockFile, 'foo');
+		$this->assertFsHas($this->lockFile);
 
-		Lock::write(10);
-		$this->assertFsHas(Lock::$lockFile);
-		$this->assertEquals($time + 10 + 30, \XF::fs()->read(Lock::$lockFile));
+		$this->lock->write(100000, 600);
+		$this->assertFsHas($this->lockFile);
+		$this->assertEquals(100630, \XF::fs()->read($this->lockFile));
 	}
 
 	public function test_read_returns_time()
 	{
-		$time = time();
-		$this->setTestTime($time);
-		$this->swapFs('internal-data');
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'writing lock', m::any(), [], m::any())->once();
 
-		Lock::write(5);
-		$this->assertEquals($time + 5 + 30, Lock::read());
+		$this->lock->write(100000, 500);
+		$this->assertEquals(100530, $this->lock->read());
 	}
 
 	public function test_read_returns_zero_for_bad_data()
 	{
-		$this->swapFs('internal-data');
-		$this->app()->fs()->write(Lock::$lockFile, 'foo');
+		$this->app()->fs()->write($this->lockFile, 'foo');
 
-		$this->assertEquals(0, Lock::read());
+		$this->assertEquals(0, $this->lock->read());
 	}
 
 	public function test_read_returns_zero_when_file_not_found()
 	{
-		$this->swapFs('internal-data');
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'read: could not find lockfile', ['lockFile' => 'internal-data://foo.lock'], [], m::any())->once();
 
-		$this->assertFsHasNot(Lock::$lockFile);
-		$this->assertEquals(0, Lock::read());
+		$this->assertFsHasNot($this->lockFile);
+		$this->assertEquals(0,  $this->lock->read());
 	}
 
 	public function test_remove_removes_file()
 	{
-		$this->swapFs('internal-data');
-		Lock::write(0);
-		$this->assertFsHas(Lock::$lockFile);
-		Lock::remove();
-		$this->assertFsHasNot(Lock::$lockFile);
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'removing lock', [], [], m::any())->once();
+
+		$this->app()->fs()->write($this->lockFile, 'foo');
+		$this->assertFsHas($this->lockFile);
+		$this->lock->remove();
+		$this->assertFsHasNot($this->lockFile);
 	}
 
 	public function test_remove_throws_exception_when_file_not_found()
 	{
-		$this->swapFs('internal-data');
-		$this->assertFsHasNot(Lock::$lockFile);
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'removing lock', [], [], m::any())->once();
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'remove: could not find lockfile', ['lockFile' => 'internal-data://foo.lock'], [], m::any())->once();
+
+		$this->assertFsHasNot($this->lockFile);
 
 		$this->expectException(FileNotFoundException::class);
-		Lock::remove();
+		$this->lock->remove();
 	}
 
 	public function test_exists_returns_false_when_no_file_exists()
 	{
-		$this->swapFs('internal-data');
-		$this->assertFsHasNot(Lock::$lockFile);
+		$this->assertFsHasNot($this->lockFile);
 
-		$this->assertFalse(Lock::exists());
+		$this->assertFalse($this->lock->exists());
 	}
 
 	public function test_exists_returns_true_when_file_exists()
 	{
-		$this->swapFs('internal-data');
+		$this->app()->fs()->write($this->lockFile, 'foo');
+		$this->assertFsHas($this->lockFile);
 
-		Lock::write(0);
-		$this->assertFsHas(Lock::$lockFile);
-
-		$this->assertTrue(Lock::exists());
+		$this->assertTrue($this->lock->exists());
 	}
 
 	public function test_expired_returns_true_file_does_not_exist()
 	{
-		$this->swapFs('internal-data');
-
-		$this->assertFsHasNot(Lock::$lockFile);
-		$this->assertTrue(Lock::expired());
+		$this->assertFsHasNot($this->lockFile);
+		$this->assertTrue($this->lock->expired(100000));
 	}
 
 	public function test_expired_returns_false_when_max_time_not_expired()
 	{
-		$this->swapFs('internal-data');
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'writing lock', m::any(), [], m::any())->once();
 
-		$time = time();
-		$this->setTestTime($time);
-
-		Lock::write(10);
-
-		$time2 = $time + 5;
-		$this->setTestTime($time);
+		$this->lock->write(100000, 400);
 
 		// check file still has original time
-		$this->assertEquals($time + 10 + 30, Lock::read());
-		$this->assertFalse(Lock::expired());
+		$this->assertEquals(100430, $this->lock->read());
+		$this->assertFalse($this->lock->expired(100300));
 	}
 
 	public function test_expired_returns_true_when_max_time_has_expired()
 	{
-		$this->swapFs('internal-data');
+		$this->logger->expects()->log('Hampel\JobRunner\Util\Lock', 'writing lock', m::any(), [], m::any())->once();
 
-		$time = time();
-		$this->setTestTime($time);
-
-		Lock::write(10);
-
-		$time2 = $time + 50;
-		$this->setTestTime($time2);
+		$this->lock->write(100000, 300);
 
 		// check file still has original time
-		$this->assertEquals($time + 10 + 30, Lock::read());
-		$this->assertTrue(Lock::expired());
+		$this->assertEquals(100330, $this->lock->read());
+		$this->assertTrue($this->lock->expired(100700));
 	}
 
 }
