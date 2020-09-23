@@ -1,6 +1,7 @@
 <?php namespace Hampel\JobRunner\Cli\Command;
 
 use Hampel\JobRunner\Cli\LoggerTrait;
+use Hampel\JobRunner\SubContainer\JobRunner;
 use Hampel\JobRunner\Util\Lock;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
@@ -23,17 +24,17 @@ class RunJobs extends Command implements CustomAppCommandInterface
 			->setName('hg:run-jobs')
 			->setDescription('Runs any outstanding jobs with debug logging support.')
 			->addOption(
+				'max-execution-time',
+				't',
+				InputOption::VALUE_OPTIONAL,
+				'Sets a max execution time in seconds (max: 900)',
+				55
+			)
+			->addOption(
 				'manual-only',
 				null,
 				InputOption::VALUE_NONE,
 				'Ensures that only manually triggered jobs are run'
-			)
-			->addOption(
-				'time',
-				't',
-				InputOption::VALUE_OPTIONAL,
-				"Time in seconds to limit job runner execution to (max: 900)",
-				30
 			);
 	}
 
@@ -41,6 +42,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 	{
 		$app = \XF::app();
 		$jobManager = $app->jobManager();
+		$jobRunner = $this->getJobRunner();
 
 		if (!$jobManager->canRunJobs())
 		{
@@ -51,16 +53,10 @@ class RunJobs extends Command implements CustomAppCommandInterface
 		$app['cli.output'] = $output;
 
 		$maxRunTime = $app->config('jobMaxRunTime'); // maximum time for a single job to execute
-		$maxQueueRunTime = intval($input->getOption('time')); // maximum time for the job runner to run jobs
+		$maxQueueRunTime = $jobRunner->getMaxQueueRunTime(intval($input->getOption('max-execution-time'))); // maximum time for the job runner to run jobs
 		$manualOnly = $input->getOption('manual-only');
 
-		if ($maxQueueRunTime > 600)
-		{
-			// limit queue run time to 10 minutes
-			$maxQueueRunTime = 600;
-		}
-
-		if (!$manualOnly && !Lock::get($maxQueueRunTime))
+		if (!$manualOnly && !$jobRunner->getLock())
 		{
 			$output->writeln('<error>JobRunner already running.</error>');
 			return 2;
@@ -94,7 +90,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 
 		if (!$manualOnly)
 		{
-			Lock::remove(); // remove the lock now that we're done
+			$jobRunner->removeLock(); // remove the lock now that we're done
 		}
 
 		if ($more)
@@ -108,5 +104,13 @@ class RunJobs extends Command implements CustomAppCommandInterface
 		}
 
 		return 0;
+	}
+
+	/**
+	 * @return JobRunner
+	 */
+	protected function getJobRunner()
+	{
+		return \XF::app()->get('job.hg.runner');
 	}
 }
