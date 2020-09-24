@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+1.5.0 (2020-09-24)
+------------------
+
+* code cleanup: we don't need a custom app class to show jobs
+* new CLI command: hg:show-crons
+* new CLI command: hg:run-cron
+* add logQuiet function to LoggerTrait
+* rebuilt Lock functionality to use a non-static class, managed by a SubContainer
+* ensure lock expiry is at least 30 seconds after the max execution time (10 minutes)
+
 1.4.2 (2020-08-29)
 ------------------
 
