@@ -75,7 +75,7 @@ Again, using our previous example where web server user is `www-data` and our fo
 
 Both options (crontab and cron.d) will execute the job runner every minute, checking for outstanding jobs to be run.
 
-By default, the job runner will run for a maximum of 30 seconds, executing any outstanding jobs until there are no more
+By default, the job runner will run for a maximum of 55 seconds, executing any outstanding jobs until there are no more
 runnable jobs in the queue.
 
 Configuration
@@ -89,12 +89,10 @@ For example, to allow the job runner to execute for a maximum of 45 seconds:
 	:::bash
 	$ php <path to your forum root>/cmd.php --time=45 hg:run-jobs
 
-It is not recommended that you allow the job runner to run for longer than the period between cron triggers. For
-example, the above cron task example will execute the job runner every minute, so setting the maximum run time to more
-than 60 is generally a bad idea.  
+The system uses a lock file to prevent multiple instances of the Job Runner executing at the same time.
 
 If you prefer to not run the cron task as frequently as once per minute, you can adjust the cron job as 
-required and if you do, you may also want to allow the job runner task to run for longer than the default 30 seconds to
+required and if you do, you may also want to allow the job runner task to run for longer than the default 55 seconds to
 ensure that all outstanding work is completed.
 
 For example, to run the cron task every 5 minutes, allowing the job runner to execute for a maximum of 4 minutes, use
@@ -114,10 +112,9 @@ they are suspended for further processing on another go-around, if possible. The
 browser-triggered job runner and so to allow jobs to execute longer in a CLI environment, you may want to adjust this
 to a higher value. 
 
-You should not set `jobMaxRunTime` to anything higher than 30 seconds, or the time specified by the --time option. In 
-general it is suggested that this setting be kept to a relatively small value to avoid the situation where a single very
-long job may prevent other jobs from executing in a timely manner. Some experimentation may be required to find the 
-optimal value for your server load and forum size.
+You should not set `jobMaxRunTime` too high - individual jobs should yield to other outstanding jobs to ensure that a
+ single job doesn't prevent other important jobs from executing in a timely manner. Some experimentation may be 
+ required to find the optimal value for your server load and forum size.
 
  Usage
  -----
@@ -137,7 +134,7 @@ optimal value for your server load and forum size.
  Debugging Jobs
  --------------
  
- v1.3 adds new debugging tools to help identify issues with Jobs and Cron tasks.
+There are debugging tools to help identify issues with Jobs and Cron tasks.
  
  To run in debug mode, first disable the Unix cron which runs jobs automatically and then use the verbosity options 
 (Verbose: `-v`, Very verbose:`-vv` or Debug: `-vvv`) for the `hg:run-jobs` command to specify the level of output to 
