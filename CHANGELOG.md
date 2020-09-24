@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+2.0.0b3 (2020-09-24)
+--------------------
+
+* code cleanup: we don't need a custom app class to show jobs
+* new CLI command: hg:show-crons
+* new CLI command: hg:run-cron
+* add logQuiet function to LoggerTrait
+* XF2.2 updates the XF time after each queue run
+* rebuilt Lock functionality to use a non-static class, managed by a SubContainer
+* ensure lock expiry is at least 30 seconds after the max execution time (10 minutes)
+
 2.0.0b2 (2020-08-07)
 --------------------
 
@@ -11,6 +22,37 @@ CHANGELOG
 
 * complete rewrite for XF v2.2 - new command names; lockfile based command protection; extensive logging support
 * unit tests
+
+1.5.0 (2020-09-24)
+------------------
+
+* code cleanup: we don't need a custom app class to show jobs
+* new CLI command: hg:show-crons
+* new CLI command: hg:run-cron
+* add logQuiet function to LoggerTrait
+* rebuilt Lock functionality to use a non-static class, managed by a SubContainer
+* ensure lock expiry is at least 30 seconds after the max execution time (10 minutes)
+
+1.4.2 (2020-08-29)
+------------------
+
+* prevent JobRunner 1.x from being installed on XenForo 2.2
+
+1.4.1 (2020-08-26)
+------------------
+
+* renamed the Job run trigger option to avoid issues after upgrading to XF v2.2
+
+1.4.0 (2020-08-26)
+------------------
+
+* major update: backporting code from v2.0 of the addon to mimic functionality added for XF v2.2
+* job runner command changed from `xf:run-jobs` to `hg:run-jobs` to avoid being clash with core XF v2.2 command
+* now uses lock file to permit jobs to run for up to 10 minutes based on `--time` parameter
+* admin config option to disable Activity based trigger added (similar to what is coming in XF v2.2)
+* minimum PHP version now 7.0.0
+* tested on XF v2.1.10 - no longer supporting XF v2.0.x (it might work, but we're not testing it)
+* shows an error message if run on 
 
 1.3.1 (2019-11-28)
 ------------------
