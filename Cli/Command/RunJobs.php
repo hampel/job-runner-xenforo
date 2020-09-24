@@ -2,7 +2,6 @@
 
 use Hampel\JobRunner\Cli\LoggerTrait;
 use Hampel\JobRunner\SubContainer\JobRunner;
-use Hampel\JobRunner\Util\Lock;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
@@ -26,7 +25,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 			->addOption(
 				'max-execution-time',
 				't',
-				InputOption::VALUE_OPTIONAL,
+				InputOption::VALUE_REQUIRED,
 				'Sets a max execution time in seconds (max: 900)',
 				55
 			)
