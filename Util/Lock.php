@@ -1,62 +1,90 @@
 <?php namespace Hampel\JobRunner\Util;
 
+use Hampel\JobRunner\Cli\Logger;
 use League\Flysystem\FileNotFoundException;
+use League\Flysystem\FilesystemInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Lock
 {
-	public static $lockFile = 'internal-data://run-jobs-lock.txt';
+	/** @var string */
+	protected $lockFile;
 
-	public static function get($maxRunTime)
+	/** @var FilesystemInterface */
+	protected $fs;
+
+	/** @var Logger */
+	protected $logger;
+
+	public function __construct($lockFile, FilesystemInterface $fs, Logger $logger = null)
 	{
-		if (self::expired())
+		$this->lockFile = $lockFile;
+		$this->fs = $fs;
+		$this->logger = $logger;
+	}
+
+	public function get($timeNow, $expiry)
+	{
+		if ($this->expired($timeNow))
 		{
-			return self::write($maxRunTime);
+			return $this->write($timeNow, $expiry);
 		}
 
 		return false;
 	}
 
-	public static function write($maxRunTime)
+	public function write($timeNow, $expiry)
 	{
-		// if not deleted, lock will expire 30 seconds after $maxRunTime seconds has passed
-		$lockUntil = \XF::$time + $maxRunTime + 30;
-		if (self::exists())
+		// if not deleted, lock will expire 30 seconds after 'runtime.limit' seconds has passed (ie 630 seconds)
+		$expiryTime = $timeNow + $expiry + 30;
+
+		$lockInfo = ['expiryTime' => $expiryTime, 'expiryTime_formatted' => date("Y-m-d H:i:s T", $expiryTime)];
+
+		if ($this->exists())
 		{
-			self::log("updating lock", ['lockUntil' => $lockUntil, 'lockUntil_formatted' => date("Y-m-d H:i:s T", $lockUntil)]);
-			return \XF::fs()->update(self::$lockFile, $lockUntil);
+			$this->log("updating lock", $lockInfo);
+			return $this->fs->update($this->lockFile, $expiryTime);
 		}
 		else
 		{
-			self::log("writing lock", ['lockUntil' => $lockUntil, 'lockUntil_formatted' => date("Y-m-d H:i:s T", $lockUntil)]);
-			return \XF::fs()->write(self::$lockFile, $lockUntil);
+			$this->log("writing lock", $lockInfo);
+			return $this->fs->write($this->lockFile, $expiryTime);
 		}
 	}
 
-	public static function read()
+	public function read()
 	{
 		try
 		{
-			return intval(\XF::fs()->read(self::$lockFile));
+			return intval($this->fs->read($this->lockFile));
 		}
 		catch (FileNotFoundException $e)
 		{
+			$this->log("read: could not find lockfile", ['lockFile' => $this->lockFile], OutputInterface::VERBOSITY_NORMAL);
 			return 0;
 		}
 	}
 
-	public static function remove()
+	public function remove()
 	{
-		self::log("removing lock");
-		\XF::fs()->delete(self::$lockFile);
+		$this->log("removing lock");
+		try
+		{
+			$this->fs->delete($this->lockFile);
+		}
+		catch (FileNotFoundException $e)
+		{
+			$this->log("remove: could not find lockfile", ['lockFile' => $this->lockFile], OutputInterface::VERBOSITY_NORMAL);
+			throw $e;
+		}
 	}
 
-	public static function exists()
+	public function exists()
 	{
 		try
 		{
 			// If this path doesn't exist, then this will throw an exception. We need to handle this elsewhere.
-			return \XF::fs()->has(self::$lockFile);
+			return $this->fs->has($this->lockFile);
 		}
 		catch (\Exception $e)
 		{
@@ -64,27 +92,22 @@ class Lock
 		}
 	}
 
-	public static function expired()
+	public function expired($timenow)
 	{
-		if (!self::exists())
+		if (!$this->exists())
 		{
 			return true;
 		}
 
-		$runUntil = self::read();
+		$expiryTime = $this->read();
 
-		return $runUntil < \XF::$time;
+		return $expiryTime < $timenow;
 	}
 
-	protected static function log($message, array $context = [])
+	protected function log($message, array $context = [], $verbosity = OutputInterface::VERBOSITY_DEBUG)
 	{
-		$app = \XF::app();
+		if (!isset($this->logger)) return;
 
-		// check to see if we actually have a logger available and abort if not
-		if (!isset($app['cli.logger'])) return;
-
-		/** @var Logger $logger */
-		$logger = $app['cli.logger'];
-		$logger->log(self::class, $message, $context, [], OutputInterface::VERBOSITY_DEBUG);
+		$this->logger->log(self::class, $message, $context, [], $verbosity);
 	}
 }
