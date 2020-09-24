@@ -23,9 +23,9 @@ class RunJobs extends Command implements CustomAppCommandInterface
 			->setName('hg:run-jobs')
 			->setDescription('Runs any outstanding jobs with debug logging support.')
 			->addOption(
-				'max-execution-time',
+				'time',
 				't',
-				InputOption::VALUE_OPTIONAL,
+				InputOption::VALUE_REQUIRED,
 				'Sets a max execution time in seconds (max: 900)',
 				55
 			)
@@ -60,7 +60,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 		$app['cli.output'] = $output;
 
 		$maxRunTime = $app->config('jobMaxRunTime'); // maximum time for a single job to execute
-		$maxQueueRunTime = $jobRunner->getMaxQueueRunTime(intval($input->getOption('max-execution-time'))); // maximum time for the job runner to run jobs
+		$maxQueueRunTime = $jobRunner->getMaxQueueRunTime(intval($input->getOption('time'))); // maximum time for the job runner to run jobs
 		$manualOnly = $input->getOption('manual-only');
 
 		if (!$manualOnly && !$jobRunner->getLock())
