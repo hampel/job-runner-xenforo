@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+2.0.0 (2020-09-30)
+------------------
+
+* listen to app_cli_setup rather than app_setup
+* bugfix: need to include Setup.php even though we don't do anything in it - otherwise upgrade from v1.5 fails
+
 2.0.0b3 (2020-09-24)
 --------------------
 
