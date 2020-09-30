@@ -6,7 +6,7 @@ use XF\Container;
 
 class Listener
 {
-	public static function appSetup(App $app)
+	public static function appCliSetup(App $app)
 	{
 		$container = $app->container();
 

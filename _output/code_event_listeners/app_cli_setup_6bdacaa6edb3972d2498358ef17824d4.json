@@ -1,8 +1,8 @@
 {
-    "event_id": "app_setup",
+    "event_id": "app_cli_setup",
     "execute_order": 10,
     "callback_class": "Hampel\\JobRunner\\Listener",
-    "callback_method": "appSetup",
+    "callback_method": "appCliSetup",
     "active": true,
     "hint": "",
     "description": "Bind JobRunner SubContainer to App Container"
