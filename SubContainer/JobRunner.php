@@ -52,4 +52,9 @@ class JobRunner extends AbstractSubContainer
 	{
 		return $this->lock()->remove();
 	}
+
+	public function lockExists()
+	{
+		return $this->lock()->exists();
+	}
 }

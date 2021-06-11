@@ -34,7 +34,13 @@ class RunJobs extends Command implements CustomAppCommandInterface
 				null,
 				InputOption::VALUE_NONE,
 				'Ensures that only manually triggered jobs are run'
-			);
+			)
+			->addOption(
+				'reset',
+				null,
+				InputOption::VALUE_NONE,
+				'Reset lock file before execution'
+		);
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output)
@@ -54,13 +60,24 @@ class RunJobs extends Command implements CustomAppCommandInterface
 		$maxRunTime = $app->config('jobMaxRunTime'); // maximum time for a single job to execute
 		$maxQueueRunTime = $jobRunner->getMaxQueueRunTime(intval($input->getOption('max-execution-time'))); // maximum time for the job runner to run jobs
 		$manualOnly = $input->getOption('manual-only');
+		$reset = $input->getOption('reset');
 
-		if (!$manualOnly && !$jobRunner->getLock())
+		if (!$manualOnly)
 		{
-			$output->writeln('<error>JobRunner already running.</error>');
-			return 2;
-		}
+			if ($reset && $jobRunner->lockExists())
+			{
+				// manual reset of lock - any other existing job runners will fail when they try to remove the lock
+				$jobRunner->removeLock();
+			}
 
+			if (!$jobRunner->getLock())
+			{
+				// we couldn't get a new lock - abort now
+				$output->writeln('<error>JobRunner already running.</error>');
+				return 2;
+			}
+		}
+		
 		$time = time();
 		$this->log("Run Jobs starting", compact('maxRunTime', 'maxQueueRunTime', 'manualOnly', 'time'));
 
