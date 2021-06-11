@@ -77,7 +77,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 				return 2;
 			}
 		}
-		
+
 		$time = time();
 		$this->log("Run Jobs starting", compact('maxRunTime', 'maxQueueRunTime', 'manualOnly', 'time'));
 
