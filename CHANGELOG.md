@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+2.1.0 (2021-06-11)
+------------------
+
+* had required parameters after optional parameters - re-arranging logJobProgress function signature to make it more 
+  usable
+* added new option --reset to delete any existing lockfile - useful in situations where a job has crashed without 
+  removing the lock and you don't want to wait 10 minutes for the lock to expire
+
 2.0.0 (2020-09-30)
 ------------------
 
