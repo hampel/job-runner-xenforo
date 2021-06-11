@@ -44,6 +44,6 @@ class TestJob extends AbstractJob
 
 		/** @var Logger $logger */
 		$logger = $this->app['cli.logger'];
-		$logger->logJobProgress($message, $context, $this);
+		$logger->logJobProgress($this, $message, $context);
 	}
 }

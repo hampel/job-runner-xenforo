@@ -38,7 +38,7 @@ class Logger
 		}
 	}
 
-	public function logJobProgress($message, array $context = [], AbstractJob $job, $verbosity = OutputInterface::VERBOSITY_DEBUG)
+	public function logJobProgress(AbstractJob $job, $message, array $context = [], $verbosity = OutputInterface::VERBOSITY_DEBUG)
 	{
 		if (!$this->output || !$this->output->isVerbose()) return;
 
