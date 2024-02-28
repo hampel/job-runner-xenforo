@@ -5,12 +5,12 @@
     "version_id": 2010070,
     "version_string": "2.1.0",
     "dev": "Simon Hampel",
-    "dev_url": "https://bitbucket.org/hampel/",
+    "dev_url": "https://xenforo.com/community/members/sim.4264/",
     "faq_url": "",
-    "support_url": "https://bitbucket.org/hampel/job-runner-xenforo/issues",
+    "support_url": "https://xenforo.com/community/threads/cli-job-cron-runner.183700/",
     "extra_urls": {
-        "Git Repository": "https://bitbucket.org/hampel/job-runner-xenforo",
-        "Twitter": "https://twitter.com/SimonHampel"
+        "Addon": "https://xenforo.com/community/resources/cli-job-cron-runner.7931/",
+        "Git Repository": "https://github.com/hampel/job-runner-xenforo"
     },
     "require": {
         "php": [
