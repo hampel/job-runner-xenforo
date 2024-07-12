@@ -48,16 +48,32 @@ class Manager extends XFCP_Manager
 			return $runnable;
 		}
 
-		// get Runnable jobs excluding cron jobs
-		return $this->db->fetchAll("
-			SELECT *
-			FROM xf_job
-			WHERE trigger_date <= ?
-				AND manual_execute = ?
-				AND unique_key != 'cron'
-			ORDER BY trigger_date
-			LIMIT 1000
-		", [\XF::$time, $manual ? 1 : 0]);
+        if (\XF::$versionId >= 2030000) { // XF 2.3+
+
+            // XF 2.3 adds priority to job queue
+            return $this->db->fetchAll("
+                SELECT *
+                FROM xf_job
+                WHERE trigger_date <= ?
+                    AND manual_execute = ?
+                    AND unique_key != 'cron'
+                ORDER BY priority DESC, trigger_date ASC
+                LIMIT 1000
+            ", [\XF::$time, $manual ? 1 : 0]);
+        }
+        else // XF 2.2
+        {
+            // get Runnable jobs excluding cron jobs
+            return $this->db->fetchAll("
+                SELECT *
+                FROM xf_job
+                WHERE trigger_date <= ?
+                    AND manual_execute = ?
+                    AND unique_key != 'cron'
+                ORDER BY trigger_date
+                LIMIT 1000
+            ", [\XF::$time, $manual ? 1 : 0]);
+        }
 	}
 
 	public function queuePending($manual)

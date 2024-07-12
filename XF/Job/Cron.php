@@ -54,6 +54,8 @@ class Cron extends XFCP_Cron
 			{
 				if ($hasCallback)
 				{
+                    $entry['cron_class'] = $this->app->extendClass($entry['cron_class']);
+
 					call_user_func(
 						[$entry['cron_class'], $entry['cron_method']],
 						$entry
