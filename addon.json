@@ -18,8 +18,8 @@
             "PHP 7.0+"
         ],
         "XF": [
-            "2020052",
-            "XenForo 2.2.0 RC2+"
+            "2020070",
+            "XenForo 2.2.0+"
         ]
     },
     "icon": "fa-calendar-alt"
