@@ -13,3 +13,5 @@ Requirements
 ------------
 
 This addon requires PHP 7.0 or higher and XenForo 2.2+
+
+TODO: implement Monolog logging

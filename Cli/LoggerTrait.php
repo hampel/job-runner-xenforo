@@ -4,6 +4,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 trait LoggerTrait
 {
+	/**
+	 * @return false|Logger
+	 */
 	private function getLogger()
 	{
 		$app = $this->app ?? \XF::app();
