@@ -9,9 +9,5 @@ for extended periods of up to 10 minutes.
 
 By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
-Requirements
-------------
-
-This addon requires PHP 7.0 or higher and XenForo 2.2+
-
-TODO: implement Monolog logging
+* [Addon: CLI Job Runner](https://xenforo.com/community/resources/cli-job-cron-runner.7931/)
+* [Discussion and support: CLI Job Runner](https://xenforo.com/community/threads/cli-job-cron-runner.183700/)
