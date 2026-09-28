@@ -125,10 +125,13 @@ Nothing tests the extensions, the commands or the lock under concurrency.
 
 ## Build and release
 
-**`build.json` does not yet remove this file from the release.** Its last step moves every root
-`*.md` to the zip root, so `CLAUDE.md` would ship beside the README. It also deletes `TESTING.md`
-twice, and `.gitignore` has no entry for `.phpunit.cache/`, which `phpunit.xml` names. Read the
-`xenforo-addon-audit` skill before changing packaging.
+**`build.json`'s last step moves every root `*.md` to the zip root, so a dev-only document is kept
+out only by an `rm -fv` that runs before it.** The exec steps delete Composer's files,
+`phpunit.xml`, `tests/`, `vendor/`, both PHPUnit cache names, `TESTING.md` and both Claude files; a
+new dev-only root document needs adding to that list, or it ships beside the README.
+
+`.gitignore` has no entry yet for `.phpunit.cache/`, which `phpunit.xml` names, or for
+`CLAUDE.local.md`. Read the `xenforo-addon-audit` skill before changing packaging.
 
 ## Versioning
 
