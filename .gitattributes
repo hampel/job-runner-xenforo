@@ -1,0 +1,27 @@
+# Normalise line endings to LF, in the repository and in the working tree.
+#
+# This checkout is committed through a Windows client over \\wsl$, which has
+# rewritten every tracked file to CRLF with no real change. text=auto stores LF
+# whatever the committing platform does; eol=lf checks LF back out, so
+# core.autocrlf on the Windows side cannot reintroduce CRLF on disk.
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.zip  binary
+
+# Keep development-only files out of `git archive` - GitHub's "Download ZIP".
+# This is one of three separate exclusion surfaces and covers none of the others:
+#   the git repo        -> .gitignore
+#   git archive output  -> here
+#   the XenForo zip     -> build.json `rm` (the builder walks the filesystem, not git)
+/CLAUDE.md        export-ignore
+/CLAUDE.local.md  export-ignore
+/TESTING.md       export-ignore
+/tests            export-ignore
+/phpunit.xml      export-ignore
+/composer.json    export-ignore
+/composer.lock    export-ignore
+/.gitattributes   export-ignore
+/.gitignore       export-ignore

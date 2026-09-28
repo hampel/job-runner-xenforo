@@ -130,8 +130,9 @@ out only by an `rm -fv` that runs before it.** The exec steps delete Composer's 
 `phpunit.xml`, `tests/`, `vendor/`, both PHPUnit cache names, `TESTING.md` and both Claude files; a
 new dev-only root document needs adding to that list, or it ships beside the README.
 
-`.gitignore` has no entry yet for `.phpunit.cache/`, which `phpunit.xml` names, or for
-`CLAUDE.local.md`. Read the `xenforo-addon-audit` skill before changing packaging.
+**That list covers the XenForo zip only.** GitHub's "Download ZIP" is `git archive`, which
+ignores `build.json` and is governed by `export-ignore` in `.gitattributes`; a new dev-only file
+needs adding in both places. Read the `xenforo-addon-audit` skill before changing packaging.
 
 ## Versioning
 
