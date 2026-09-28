@@ -78,8 +78,8 @@ when a cron entry is next saved — so one broken cron task from any add-on stop
 task on the forum. XF 2.2's core catches only `\Exception`; this copy is deliberately wider.
 
 Remaining drift, checked on 2026-09-28 against XF 2.3: core resolves the service and finder by
-class name rather than short name, which 2.2 cannot do. `Cli/Command/RunCron` also calls the cron callback without
-`extendClass()`, unlike both copies of `run()`.
+class name rather than short name, which 2.2 cannot do. `Cli/Command/RunCron` also calls the cron
+callback without `extendClass()`, unlike both copies of `run()`.
 
 ## Compatibility floors are load-bearing
 
