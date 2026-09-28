@@ -109,12 +109,4 @@ class ShowCrons extends Command
 
 		return 0;
 	}
-
-	/**
-	 * @return \XF\Repository\CronEntry
-	 */
-	protected function getCronRepo()
-	{
-		return \XF::repository('XF:CronEntry');
-	}
 }

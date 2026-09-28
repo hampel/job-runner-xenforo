@@ -26,7 +26,7 @@ class RunJobs extends Command implements CustomAppCommandInterface
 				'max-execution-time',
 				't',
 				InputOption::VALUE_REQUIRED,
-				'Sets a max execution time in seconds (max: 900)',
+				'Sets a max execution time in seconds (max: 600)',
 				55
 			)
 			->addOption(

@@ -50,9 +50,9 @@ The pieces are spread across files that never reference each other directly, so 
 second `hg:run-jobs` that finds an unexpired lock exits with code 2; `--reset` deletes the lock
 first, for a runner that crashed without removing it. `--manual-only` takes no lock at all.
 
-**`--max-execution-time` says "max: 900" in its help text, but the real ceiling is 600** —
-`JobRunner::getMaxQueueRunTime()` clamps to `runtime.limit`, and the lock expiry is derived from
-the same value. Raise one without the other and two runners can overlap.
+**`--max-execution-time` is capped at 600**, the `runtime.limit` that
+`JobRunner::getMaxQueueRunTime()` clamps to — and the lock expiry is derived from the same value.
+Raise one without the other and two runners can overlap.
 
 ### Logging verbosity
 
