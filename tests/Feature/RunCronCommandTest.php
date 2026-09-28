@@ -3,7 +3,6 @@
 use Hampel\JobRunner\Cli\Command\RunCron;
 use Hampel\Testing\Concerns\UsesDatabaseTransactions;
 use Tests\Fixtures\CronCallbacks;
-use Tests\Fixtures\ExtendableCronCallbacks;
 use Tests\Fixtures\ExtendedCronCallbacks;
 use Tests\TestCase;
 
@@ -36,8 +35,8 @@ class RunCronCommandTest extends TestCase
 	public function test_runs_the_class_as_extended_by_other_addons()
 	{
 		// as another add-on's class extension would, so the command debugs what the scheduler runs
-		$this->app()->extension()->addClassExtension(ExtendableCronCallbacks::class, ExtendedCronCallbacks::class);
-		$this->insertCronEntry('jrTestExtended', 'record', 5000, 1, ExtendableCronCallbacks::class);
+		$this->app()->extension()->addClassExtension(CronCallbacks::class, ExtendedCronCallbacks::class);
+		$this->insertCronEntry('jrTestExtended', 'record', 5000);
 
 		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestExtended']);
 

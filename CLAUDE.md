@@ -121,7 +121,7 @@ sink.
 
 ## Tests
 
-The suite is on `hampel/xenforo-test-framework` `^5.10` and PHPUnit `^12.0`. The framework boots the
+The suite is on `hampel/xenforo-test-framework` `^5.11` and PHPUnit `^12.0`. The framework boots the
 enclosing XenForo install (`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs a
 working install and database, not only `vendor/`.
 
@@ -157,12 +157,12 @@ behind; that is expected, not a bump to take.
   a swapped `internal-data`.
 - **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id.
 
-### A class extension added in a test outlives the test
+### A class can be extended in only one test per run
 
-`tests/Fixtures/ExtendableCronCallbacks.php` exists for one test. Its proxy is a `class_alias()`,
-which PHP cannot undo, and the framework keeps the extended resolution cached, so extending
-`CronCallbacks` itself would hand every later cron test the extended class. Extend a base class
-that nothing else resolves.
+`RunCronCommandTest` extends `CronCallbacks` with `tests/Fixtures/ExtendedCronCallbacks.php`, and
+the framework forgets the extension when that test ends. **A second test extending the same class
+fails**: the `XFCP_` proxy is a `class_alias()`, which PHP cannot declare twice in one process. A
+second extension test needs a base class of its own.
 
 `LockTest` mocks the logger with exact-argument expectations — **a change to a log message in
 `Util\Lock` is a test change too.** A data provider runs before XenForo boots, so it cannot name
