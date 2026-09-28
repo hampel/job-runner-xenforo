@@ -37,7 +37,7 @@ class ShowCommandsTest extends TestCase
 		$this->insertCronEntry('jrTestListed', 'record', 5000);
 		$this->insertCronEntry('jrTestHidden', 'record', 5000, 0);
 
-		$tester = $this->runCommand(new ShowCrons());
+		$tester = $this->runConsoleCommand(new ShowCrons());
 
 		$display = $tester->getDisplay();
 		$this->assertSame(0, $tester->getStatusCode());
@@ -52,7 +52,7 @@ class ShowCommandsTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestHidden', 'record', 5000, 0);
 
-		$tester = $this->runCommand(new ShowCrons(), ['--all' => true, '--method' => true]);
+		$tester = $this->runConsoleCommand(new ShowCrons(), ['--all' => true, '--method' => true]);
 
 		$display = $tester->getDisplay();
 		$this->assertMatchesRegularExpression('/\d+ cron entries found/', $display);
@@ -64,7 +64,7 @@ class ShowCommandsTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestZoned', 'record', 1767225600); // 2026-01-01 00:00 UTC
 
-		$display = $this->runCommand(new ShowCrons(), ['--sort' => 'id'])->getDisplay();
+		$display = $this->runConsoleCommand(new ShowCrons(), ['--sort' => 'id'])->getDisplay();
 
 		$this->assertStringContainsString('01-Jan-2026 11:00', $display); // AEDT, UTC+11
 		$this->assertSame('UTC', date_default_timezone_get());
@@ -74,7 +74,7 @@ class ShowCommandsTest extends TestCase
 	{
 		$this->insertJob('jrTestPending', 'Hampel\JobRunner:TestJob', 1767225600);
 
-		$tester = $this->runCommand(new ShowJobs());
+		$tester = $this->runConsoleCommand(new ShowJobs());
 
 		$display = $tester->getDisplay();
 		$this->assertSame(0, $tester->getStatusCode());
@@ -88,7 +88,7 @@ class ShowCommandsTest extends TestCase
 	{
 		$this->app()->db()->delete('xf_job', '1=1');
 
-		$tester = $this->runCommand(new ShowJobs());
+		$tester = $this->runConsoleCommand(new ShowJobs());
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertStringContainsString('No pending jobs found', $tester->getDisplay());

@@ -44,7 +44,7 @@ class RunJobsCommandTest extends TestCase
 	{
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->once();
 
-		$tester = $this->runCommand(new RunJobs());
+		$tester = $this->runConsoleCommand(new RunJobs());
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertStringContainsString('All outstanding jobs have run.', $tester->getDisplay());
@@ -56,7 +56,7 @@ class RunJobsCommandTest extends TestCase
 		$this->jobManager->expects()->queuePending(false)->andReturns(true, true, false)->times(3);
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->times(3);
 
-		$tester = $this->runCommand(new RunJobs());
+		$tester = $this->runConsoleCommand(new RunJobs());
 
 		$this->assertSame(0, $tester->getStatusCode());
 	}
@@ -68,7 +68,7 @@ class RunJobsCommandTest extends TestCase
 
 		try
 		{
-			$this->runCommand(new RunJobs());
+			$this->runConsoleCommand(new RunJobs());
 			$this->fail('The exception from the job should propagate out of the command.');
 		}
 		catch (\RuntimeException $e)
@@ -85,7 +85,7 @@ class RunJobsCommandTest extends TestCase
 		$this->writeLock(\XF::$time + 300);
 		$this->jobManager->expects()->runQueue(m::any(), m::any())->never();
 
-		$tester = $this->runCommand(new RunJobs());
+		$tester = $this->runConsoleCommand(new RunJobs());
 
 		$this->assertSame(2, $tester->getStatusCode());
 		$this->assertStringContainsString('JobRunner already running.', $tester->getDisplay());
@@ -97,7 +97,7 @@ class RunJobsCommandTest extends TestCase
 		$this->writeLock(\XF::$time - 1);
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->once();
 
-		$tester = $this->runCommand(new RunJobs());
+		$tester = $this->runConsoleCommand(new RunJobs());
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertFsHasNot($this->lockFile);
@@ -108,7 +108,7 @@ class RunJobsCommandTest extends TestCase
 		$this->writeLock(\XF::$time + 300);
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->once();
 
-		$tester = $this->runCommand(new RunJobs(), ['--reset' => true]);
+		$tester = $this->runConsoleCommand(new RunJobs(), ['--reset' => true]);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertFsHasNot($this->lockFile);
@@ -120,7 +120,7 @@ class RunJobsCommandTest extends TestCase
 		$this->jobManager->expects()->queuePending(true)->andReturns(false);
 		$this->jobManager->expects()->runQueue(true, m::type('numeric'))->once();
 
-		$tester = $this->runCommand(new RunJobs(), ['--manual-only' => true]);
+		$tester = $this->runConsoleCommand(new RunJobs(), ['--manual-only' => true]);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertSame(\XF::$time + 300, intval($this->app()->fs()->read($this->lockFile)));
@@ -131,7 +131,7 @@ class RunJobsCommandTest extends TestCase
 		$this->jobManager->expects()->canRunJobs()->andReturns(false);
 		$this->jobManager->expects()->runQueue(m::any(), m::any())->never();
 
-		$tester = $this->runCommand(new RunJobs());
+		$tester = $this->runConsoleCommand(new RunJobs());
 
 		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertStringContainsString('Jobs cannot be run at this time.', $tester->getDisplay());
@@ -145,7 +145,7 @@ class RunJobsCommandTest extends TestCase
 			return $maxRunTime <= 3;
 		}))->once();
 
-		$this->runCommand(new RunJobs(), ['--max-execution-time' => 600]);
+		$this->runConsoleCommand(new RunJobs(), ['--max-execution-time' => 600]);
 	}
 
 	public function test_lets_cron_tasks_into_the_queue()
@@ -153,6 +153,6 @@ class RunJobsCommandTest extends TestCase
 		$this->jobManager->expects()->setAllowCron(true)->once();
 		$this->jobManager->allows()->runQueue(m::any(), m::any());
 
-		$this->runCommand(new RunJobs());
+		$this->runConsoleCommand(new RunJobs());
 	}
 }

@@ -34,18 +34,9 @@ class SetupTest extends TestCase
 		// enqueuePostUpgradeCleanUp() does not exist before 2.3, so calling it there is a fatal
 		$this->fakesJobs();
 		$state = [];
-		$versionId = \XF::$versionId;
-
-		// setStaticProperty() does not restore the value after the test, so restore it by hand
 		$this->setStaticProperty(\XF::class, 'versionId', 2021970);
-		try
-		{
-			$this->makeSetup()->postUpgrade(2010170, $state);
-		}
-		finally
-		{
-			$this->setStaticProperty(\XF::class, 'versionId', $versionId);
-		}
+
+		$this->makeSetup()->postUpgrade(2010170, $state);
 
 		$this->assertNoJobsQueued();
 	}

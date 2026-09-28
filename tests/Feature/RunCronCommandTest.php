@@ -18,7 +18,7 @@ class RunCronCommandTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestManual', 'record', 5000);
 
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestManual']);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestManual']);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertSame(['jrTestManual'], CronCallbacks::$calls);
@@ -28,7 +28,7 @@ class RunCronCommandTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestNextRun', 'record', 5000);
 
-		$this->runCommand(new RunCron(), ['id' => 'jrTestNextRun']);
+		$this->runConsoleCommand(new RunCron(), ['id' => 'jrTestNextRun']);
 
 		$this->assertSame(5000, $this->cronNextRun('jrTestNextRun'));
 	}
@@ -39,7 +39,7 @@ class RunCronCommandTest extends TestCase
 		$this->app()->extension()->addClassExtension(ExtendableCronCallbacks::class, ExtendedCronCallbacks::class);
 		$this->insertCronEntry('jrTestExtended', 'record', 5000, 1, ExtendableCronCallbacks::class);
 
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestExtended']);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestExtended']);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertSame(['extended:jrTestExtended'], CronCallbacks::$calls);
@@ -50,7 +50,7 @@ class RunCronCommandTest extends TestCase
 		$this->fakesErrors();
 		$this->insertCronEntry('jrTestBroken', 'throwError', 5000);
 
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestBroken']);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestBroken']);
 
 		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertStringContainsString(
@@ -62,7 +62,7 @@ class RunCronCommandTest extends TestCase
 
 	public function test_refuses_an_unknown_entry()
 	{
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestNoSuchEntry']);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestNoSuchEntry']);
 
 		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertStringContainsString('Could not find active cron entry', $tester->getDisplay());
@@ -72,7 +72,7 @@ class RunCronCommandTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestInactive', 'record', 5000, 0);
 
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestInactive']);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestInactive']);
 
 		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertSame([], CronCallbacks::$calls);
@@ -82,7 +82,7 @@ class RunCronCommandTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestForced', 'record', 5000, 0);
 
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestForced', '--force' => true]);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestForced', '--force' => true]);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertSame(['jrTestForced'], CronCallbacks::$calls);
@@ -92,7 +92,7 @@ class RunCronCommandTest extends TestCase
 	{
 		$this->insertCronEntry('jrTestNoMethod', 'noSuchMethod', 5000);
 
-		$tester = $this->runCommand(new RunCron(), ['id' => 'jrTestNoMethod']);
+		$tester = $this->runConsoleCommand(new RunCron(), ['id' => 'jrTestNoMethod']);
 
 		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertStringContainsString('Cron entry does not have a callback.', $tester->getDisplay());

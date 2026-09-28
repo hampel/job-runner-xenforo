@@ -1,11 +1,11 @@
 <?php namespace Tests\Fixtures;
 
 /**
- * CronCallbacks under a name only the class-extension test resolves.
+ * CronCallbacks under a name only the class-extension test uses.
  *
- * The test framework caches extendClass() results for the whole run, so a class extension added in
- * one test is ignored if any earlier test has already resolved the base class - and every other
- * cron test resolves CronCallbacks. Extend this instead.
+ * An extension added during a test stays applied for the rest of the run: its proxy is a
+ * class_alias(), which PHP cannot undo, and the test framework keeps the extended resolution
+ * cached. Extending CronCallbacks itself would hand every later cron test the extended class.
  */
 class ExtendableCronCallbacks extends CronCallbacks
 {

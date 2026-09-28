@@ -2,10 +2,8 @@
 
 use Hampel\JobRunner\Cli\Logger;
 use Hampel\Testing\TestCase as BaseTestCase;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Tester\CommandTester;
 use Tests\Fixtures\CronCallbacks;
 
 abstract class TestCase extends BaseTestCase
@@ -34,29 +32,6 @@ abstract class TestCase extends BaseTestCase
 
 		CronCallbacks::$calls = [];
 
-		$this->resolveEverySpellingOfCalculateNextRun();
-	}
-
-	/**
-	 * Workaround for the test framework, not for XenForo. Its Extension caches extendClass() results
-	 * across tests keyed by the class name exactly as passed - before XenForo strips a leading
-	 * backslash or resolves a 2.3 alias - so each spelling of one class gets its own entry. A spelling
-	 * first met in a later test, on that test's fresh Extension, declares XFCP_CalculateNextRun
-	 * again: "Cannot declare class ... because the name is already in use".
-	 *
-	 * The suite meets three: the service factory's '\XF\Service\...' from this add-on's
-	 * Cron::run(), core run()'s 2.3 class name, and the plain 2.2 name. Resolving all three here,
-	 * on one Extension, puts every spelling in the cache from the first test.
-	 */
-	private function resolveEverySpellingOfCalculateNextRun()
-	{
-		$this->app()->extendClass('XF\Service\CronEntry\CalculateNextRun');
-		$this->app()->extendClass('\XF\Service\CronEntry\CalculateNextRun');
-
-		if (\XF::$versionId >= 2030000)
-		{
-			$this->app()->extendClass('XF\Service\CronEntry\CalculateNextRunService');
-		}
 	}
 
 	protected function getMockData($file)
@@ -120,13 +95,5 @@ abstract class TestCase extends BaseTestCase
 		]);
 
 		return intval($this->app()->db()->lastInsertId());
-	}
-
-	protected function runCommand(Command $command, array $input = [], array $options = []): CommandTester
-	{
-		$tester = new CommandTester($command);
-		$tester->execute($input, $options);
-
-		return $tester;
 	}
 }

@@ -16,7 +16,7 @@ class TestJobTest extends TestCase
 	{
 		$this->fakesJobs();
 
-		$tester = $this->runCommand(new TestJobs(), ['email' => $this->email]);
+		$tester = $this->runConsoleCommand(new TestJobs(), ['email' => $this->email]);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertJobQueuedTimes('Hampel\JobRunner:TestJob', 1);
