@@ -83,11 +83,10 @@ callback without `extendClass()`, unlike both copies of `run()`.
 
 ## Compatibility floors are load-bearing
 
-- **PHP 7.0, inherited from the XenForo floor.** XF 2.2's own minimum is 7.0, so a 2.2 install
-  can run this code on it — no nullable types, typed properties, `void` returns or anything later.
-  `addon.json` deliberately declares no `php` requirement: one at or below XF's own is never
-  enforced. `Util\Lock::__construct(Logger $logger = null)` is an implicit nullable that PHP
-  8.4 deprecates, and the explicit `?Logger` form needs 7.1 — changing it means raising the floor.
+- **PHP 7.1, declared in `addon.json` because it is above XF 2.2's own minimum of 7.0.** Nullable
+  types and `void` returns are available; typed properties, arrow functions and anything later
+  are not. The floor was raised from 7.0 in 2.1.3 to replace an implicit nullable parameter, which
+  PHP 8.4 deprecates, with `?Logger`. XF 2.3 requires 7.2, so only 2.2 installs are affected.
 - **XenForo 2.2.** `Setup::postUpgrade()` guards `enqueuePostUpgradeCleanUp()` behind
   `\XF::$versionId >= 2030000` because that method does not exist before 2.3; removing the guard
   makes every upgrade on 2.2 a fatal.
@@ -132,7 +131,7 @@ listeners out of the tests.
 
 **The PHP 8.3 the test framework needs is not the add-on's floor.** `composer.json` holds dev
 dependencies only — `composer.lock`'s `packages` array is empty — so nothing from `vendor/` ships,
-and the release still runs on the PHP 7.0 that the XenForo 2.2 floor allows.
+and the release still promises PHP 7.1.
 
 **`league/flysystem-memory` stays on `^1.0`, and nothing in this repository imports it.** It is
 there for the test framework's `swapFs()`, which builds its `MemoryAdapter`, and it has to match

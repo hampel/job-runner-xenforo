@@ -13,6 +13,10 @@
         "Git Repository": "https://github.com/hampel/job-runner-xenforo"
     },
     "require": {
+        "php": [
+            "7.1.0",
+            "PHP 7.1+"
+        ],
         "XF": [
             "2020070",
             "XenForo 2.2.0+"

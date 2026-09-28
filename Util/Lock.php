@@ -16,7 +16,7 @@ class Lock
 	/** @var Logger */
 	protected $logger;
 
-	public function __construct($lockFile, FilesystemInterface $fs, Logger $logger = null)
+	public function __construct($lockFile, FilesystemInterface $fs, ?Logger $logger = null)
 	{
 		$this->lockFile = $lockFile;
 		$this->fs = $fs;
