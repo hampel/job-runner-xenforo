@@ -86,28 +86,34 @@ class RunJobs extends Command implements CustomAppCommandInterface
 
 		$jobManager->setAllowCron(true);
 
-		do
+		try
 		{
-			$queueRunTime = microtime(true) - $start; // how long we've been processing jobs
-			$remaining = $maxQueueRunTime - $queueRunTime; // how long we've got left to process jobs
+			do
+			{
+				$queueRunTime = microtime(true) - $start; // how long we've been processing jobs
+				$remaining = $maxQueueRunTime - $queueRunTime; // how long we've got left to process jobs
 
-			$this->logVeryVerbose(sprintf("Remaining time: %01.2f seconds", $remaining));
+				$this->logVeryVerbose(sprintf("Remaining time: %01.2f seconds", $remaining));
 
-			if ($remaining < 1) break; // stop if we're out of time
+				if ($remaining < 1) break; // stop if we're out of time
 
-			$jobManager->runQueue($manualOnly, min($remaining, $maxRunTime));
+				$jobManager->runQueue($manualOnly, min($remaining, $maxRunTime));
 
-			// keep the memory limit down on long running jobs
-			$app->em()->clearEntityCache();
-			\XF::updateTime();
+				// keep the memory limit down on long running jobs
+				$app->em()->clearEntityCache();
+				\XF::updateTime();
 
-			$more = $jobManager->queuePending($manualOnly);
+				$more = $jobManager->queuePending($manualOnly);
+			}
+			while ($more);
 		}
-		while ($more);
-
-		if (!$manualOnly)
+		finally
 		{
-			$jobRunner->removeLock(); // remove the lock now that we're done
+			if (!$manualOnly)
+			{
+				// remove the lock now that we're done - even if a job threw, so the next run isn't blocked
+				$jobRunner->removeLock();
+			}
 		}
 
 		if ($more)
