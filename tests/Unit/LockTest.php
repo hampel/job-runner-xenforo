@@ -138,4 +138,39 @@ class LockTest extends TestCase
 		$this->assertTrue($this->lock->expired(100700));
 	}
 
+	public function test_get_takes_the_lock_when_there_is_none()
+	{
+		$this->logger->allows()->log(m::any(), m::any(), m::any(), m::any(), m::any());
+
+		$this->assertTrue($this->lock->get(100000, 600));
+		$this->assertEquals(100630, $this->lock->read());
+	}
+
+	public function test_get_refuses_an_unexpired_lock_and_leaves_it()
+	{
+		$this->logger->allows()->log(m::any(), m::any(), m::any(), m::any(), m::any());
+		$this->lock->write(100000, 600);
+
+		$this->assertFalse($this->lock->get(100500, 600));
+		$this->assertEquals(100630, $this->lock->read());
+	}
+
+	public function test_get_takes_over_an_expired_lock()
+	{
+		$this->logger->allows()->log(m::any(), m::any(), m::any(), m::any(), m::any());
+		$this->lock->write(100000, 600);
+
+		$this->assertTrue($this->lock->get(100700, 600));
+		$this->assertEquals(101330, $this->lock->read());
+	}
+
+	public function test_a_lock_without_a_logger_works()
+	{
+		$lock = new Lock($this->lockFile, $this->app()->fs(), null);
+
+		$this->assertTrue($lock->get(100000, 600));
+		$this->assertTrue($lock->exists());
+		$lock->remove();
+		$this->assertFalse($lock->exists());
+	}
 }

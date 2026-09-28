@@ -140,12 +140,40 @@ there for the test framework's `swapFs()`, which builds its `MemoryAdapter`, and
 the Flysystem 1.x that XenForo bundles. `composer outdated` will keep reporting a major version
 behind; that is expected, not a bump to take.
 
-`LockTest` swaps `internal-data` for an in-memory filesystem and
-mocks the logger with exact-argument expectations — **a change to a log message in `Util\Lock` is
-a test change too.** `tests/Feature/ExampleTest.php` is a placeholder, and `TESTING.md` is an empty
-template.
+### How the tests reach real state without leaving any
 
-Nothing tests the extensions, the commands or the lock under concurrency.
+- **Cron entries and jobs are inserted directly, inside `UsesDatabaseTransactions`**, through
+  `insertCronEntry()` and `insertJob()` in `tests/TestCase.php`. Going through the entities would
+  write dev output and queue the cron job.
+- **`setTestTime(1000)` is what isolates them.** Every real entry and job on a forum is due in the
+  future, so with the clock far in the past only the rows a test inserted are due. A test that
+  drops it would run the forum's real cron tasks.
+- **`jobRunTrigger` is set to `server` wherever it matters.** XenForo's default is `activity`,
+  under which every overridden `Manager` method defers to core — so a test relying on the forum's
+  own setting passes or fails depending on the forum.
+- **The extensions only log when `cli.logger` exists**, and a test app has none. `useCliLogger()`
+  registers one over a `BufferedOutput`; without it `Cron::run()` defers to core's copy entirely.
+- **`hg:run-jobs` is tested against a mocked job manager**, so it runs no real jobs; the lock is on
+  a swapped `internal-data`.
+- **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id.
+
+### Two framework workarounds in the suite
+
+Both come from the test framework caching `extendClass()` results for the whole run, keyed by the
+class name exactly as written. Each is commented where it lives; remove it once the framework
+normalises the key and forgets an entry when an extension is added.
+
+- `TestCase::resolveEverySpellingOfCalculateNextRun()` — without it, the third spelling of that
+  class met in a run re-declares its `XFCP_` proxy and the test errors.
+- `tests/Fixtures/ExtendableCronCallbacks.php` — a base class only the extension test resolves,
+  because an extension added to an already-resolved class is ignored.
+
+`LockTest` mocks the logger with exact-argument expectations — **a change to a log message in
+`Util\Lock` is a test change too.** A data provider runs before XenForo boots, so it cannot name
+a Symfony Console constant; `LoggerTest` uses the literal verbosity values.
+
+Not covered: `Hampel\JobRunner\App::initializeExtra()`, since a test cannot boot a second
+application class, and two runners contending for the lock in separate processes.
 
 ## Build and release
 
