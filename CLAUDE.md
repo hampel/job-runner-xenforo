@@ -79,8 +79,10 @@ rather than short name. `Cli/Command/RunCron` also calls the cron callback witho
 
 ## Compatibility floors are load-bearing
 
-- **PHP 7.0.** `addon.json` declares it, so no nullable types, typed properties, `void` returns or
-  anything later. `Util\Lock::__construct(Logger $logger = null)` is an implicit nullable that PHP
+- **PHP 7.0, inherited from the XenForo floor.** XF 2.2's own minimum is 7.0, so a 2.2 install
+  can run this code on it — no nullable types, typed properties, `void` returns or anything later.
+  `addon.json` deliberately declares no `php` requirement: one at or below XF's own is never
+  enforced. `Util\Lock::__construct(Logger $logger = null)` is an implicit nullable that PHP
   8.4 deprecates, and the explicit `?Logger` form needs 7.1 — changing it means raising the floor.
 - **XenForo 2.2.** `Setup::postUpgrade()` guards `enqueuePostUpgradeCleanUp()` behind
   `\XF::$versionId >= 2030000` because that method does not exist before 2.3; removing the guard
@@ -126,7 +128,7 @@ listeners out of the tests.
 
 **The PHP 8.3 the test framework needs is not the add-on's floor.** `composer.json` holds dev
 dependencies only — `composer.lock`'s `packages` array is empty — so nothing from `vendor/` ships,
-and the release still promises PHP 7.0.
+and the release still runs on the PHP 7.0 that the XenForo 2.2 floor allows.
 
 `LockTest` swaps `internal-data` for an in-memory filesystem and
 mocks the logger with exact-argument expectations — **a change to a log message in `Util\Lock` is

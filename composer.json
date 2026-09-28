@@ -1,6 +1,5 @@
 {
 	"require-dev": {
-		"php": ">=7.0.0",
 		"hampel/xenforo-test-framework": "^5.9",
 		"league/flysystem-memory": "^1.0",
 		"phpunit/phpunit": "^12.0"
