@@ -72,9 +72,13 @@ methods of those names cannot use it.
 original without this copy noticing. The add-on's lines are marked `// JobRunner addon`, which is
 what makes a diff against core readable.
 
-Known drift, checked on 2026-09-28 against XF 2.3: core now catches `\Throwable` around the cron
-callback where this copy catches `\Exception`, and resolves the service and finder by class name
-rather than short name. `Cli/Command/RunCron` also calls the cron callback without
+**The catch around each cron callback must stay `\Throwable`.** On XF 2.3 an `Error` escaping
+`run()` fails the job, and core then deletes the `cron` job from the queue and re-creates it only
+when a cron entry is next saved — so one broken cron task from any add-on stops every scheduled
+task on the forum. XF 2.2's core catches only `\Exception`; this copy is deliberately wider.
+
+Remaining drift, checked on 2026-09-28 against XF 2.3: core resolves the service and finder by
+class name rather than short name, which 2.2 cannot do. `Cli/Command/RunCron` also calls the cron callback without
 `extendClass()`, unlike both copies of `run()`.
 
 ## Compatibility floors are load-bearing

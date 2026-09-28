@@ -62,7 +62,7 @@ class Cron extends XFCP_Cron
 					);
 				}
 			}
-			catch (\Exception $e)
+			catch (\Throwable $e)
 			{
 				// suppress so we don't get stuck -- make sure we rollback though as don't know the state
 				$this->app->logException($e, true);
