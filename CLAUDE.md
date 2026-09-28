@@ -72,6 +72,11 @@ methods of those names cannot use it.
 original without this copy noticing. The add-on's lines are marked `// JobRunner addon`, which is
 what makes a diff against core readable.
 
+**It is one of three.** `CalculateNextRun::updateCronRunTimeAtomic()` is also core's body with
+logging added (identical to 2.2 and 2.3 as of 2026-09-29), and `Manager::getRunnable()` repeats
+core's query with the cron job excluded, once per XenForo line. Diff all three against each new
+XenForo release.
+
 **The catch around each cron callback must stay `\Throwable`.** On XF 2.3 an `Error` escaping
 `run()` fails the job, and core then deletes the `cron` job from the queue and re-creates it only
 when a cron entry is next saved — so one broken cron task from any add-on stops every scheduled
