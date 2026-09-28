@@ -13,7 +13,7 @@ class Logger
 	/** @var float $startTime */
 	protected $startTime;
 
-	public function __construct(OutputInterface $output)
+	public function __construct(?OutputInterface $output)
 	{
 		$this->output = $output;
 	}
