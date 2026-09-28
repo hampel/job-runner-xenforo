@@ -130,6 +130,11 @@ listeners out of the tests.
 dependencies only — `composer.lock`'s `packages` array is empty — so nothing from `vendor/` ships,
 and the release still runs on the PHP 7.0 that the XenForo 2.2 floor allows.
 
+**`league/flysystem-memory` stays on `^1.0`, and nothing in this repository imports it.** It is
+there for the test framework's `swapFs()`, which builds its `MemoryAdapter`, and it has to match
+the Flysystem 1.x that XenForo bundles. `composer outdated` will keep reporting a major version
+behind; that is expected, not a bump to take.
+
 `LockTest` swaps `internal-data` for an in-memory filesystem and
 mocks the logger with exact-argument expectations — **a change to a log message in `Util\Lock` is
 a test change too.** `tests/Feature/ExampleTest.php` is a placeholder, and `TESTING.md` is an empty
