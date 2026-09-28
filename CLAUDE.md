@@ -114,9 +114,21 @@ sink.
 
 ## Tests
 
-The suite is on `hampel/xenforo-test-framework` `^3.0`, which boots the enclosing XenForo install
-(`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs a working install and
-database, not only `vendor/`. `LockTest` swaps `internal-data` for an in-memory filesystem and
+The suite is on `hampel/xenforo-test-framework` `^5.9` and PHPUnit `^12.0`. The framework boots the
+enclosing XenForo install (`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs a
+working install and database, not only `vendor/`.
+
+**`$addonsToLoad` names this add-on, and the suite does not run without it.** Booting XenForo
+registers the Composer autoloader of every active add-on that declares one, so on a forum where
+another add-on vendors a different PHPUnit major, PHPUnit's own classes resolve out of that tree
+and the run dies before the first test. Isolation also keeps other add-ons' class extensions and
+listeners out of the tests.
+
+**The PHP 8.3 the test framework needs is not the add-on's floor.** `composer.json` holds dev
+dependencies only — `composer.lock`'s `packages` array is empty — so nothing from `vendor/` ships,
+and the release still promises PHP 7.0.
+
+`LockTest` swaps `internal-data` for an in-memory filesystem and
 mocks the logger with exact-argument expectations — **a change to a log message in `Util\Lock` is
 a test change too.** `tests/Feature/ExampleTest.php` is a placeholder, and `TESTING.md` is an empty
 template.
