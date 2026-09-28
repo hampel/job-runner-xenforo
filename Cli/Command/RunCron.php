@@ -60,12 +60,15 @@ class RunCron extends Command
 
 		try
 		{
+			// resolve class extensions the way the scheduler (XF\Job\Cron::run) does
+			$cronClass = \XF::extendClass($entry['cron_class']);
+
 			call_user_func(
-				[$entry['cron_class'], $entry['cron_method']],
+				[$cronClass, $entry['cron_method']],
 				$entry
 			);
 		}
-		catch (\Exception $e)
+		catch (\Throwable $e)
 		{
 			\XF::logException($e, true);
 
