@@ -132,9 +132,9 @@ php ../../../../cmd.php xf-addon:build-release Hampel/JobRunner   # release only
 **Never run `xf-dev:export`.** It writes the database over `_output/`, and omitting `--addon`
 exports every add-on in the install. `xf-addon:build-release` calls the scoped `xf-addon:export`.
 
-**`job-monitor:queue-test-job <email>` sends a real email** through the forum's configured mail transport the
-next time the queue runs. Point it at an address you control, on an install whose mail goes to a
-sink.
+**`job-monitor:queue-test-job <email>` sends a real email** through the forum's configured mail
+transport the next time the queue runs. Point it at an address you control, on an install whose
+mail goes to a sink.
 
 ## Tests
 
