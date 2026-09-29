@@ -20,6 +20,7 @@ under anything but `job-monitor:run-jobs` they add nothing.
 
 | command | does |
 |---|---|
+| `job-monitor:health-check` | checks the queue and cron through `Service\HealthCheck`; `--fix` queues a missing `cron` job via core's `updateMinimumNextRunTime()` |
 | `job-monitor:run-jobs` | runs the queue by hand, logging each job and cron entry; boots `Hampel\JobRunner\App` for the logger |
 | `job-monitor:show-jobs` | lists the job queue |
 | `job-monitor:show-crons` | lists cron entries and when each is next due |
@@ -32,7 +33,7 @@ The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x lin
 ### Everything else
 
 - A simpleCache value, `Hampel/JobRunner` / `legacyRunJobsLastUsed`: when `hg:run-jobs` last ran,
-  written at most hourly.
+  written at most hourly, and read by the health check.
 - `Setup::upgrade()` and `uninstall()` delete `internal-data://run-jobs-lock.txt`, which versions
   before 3.0.0 could leave behind.
 - No options, phrases, templates, routes, permissions, listeners or database tables.
@@ -45,6 +46,8 @@ The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x lin
   run `job-monitor:run-jobs` on it and read them.
 - **The add-on must not change which jobs run.** Until 2.2.0 it held the `cron` job back for its
   own runner, which stopped XenForo's `xf:run-jobs` running scheduled tasks.
+- **The health check's exit codes are an interface.** 0, 1 and 2 are what monitoring reads;
+  changing their meaning breaks every alert built on them. `HealthCheckTest` pins all three.
 - **`hg:run-jobs` must stay silent.** Cron mails any output, so anything it printed would arrive
   as an email every minute. `LegacyRunJobsCommandTest` pins its output to `xf:run-jobs`'s.
 - **An `Error` from a cron callback is handled by XenForo, differently per line.** 2.3 logs it and
@@ -69,12 +72,13 @@ vendor/bin/phpunit --order-by=random     # the suite must not depend on test ord
 vendor/bin/phpunit --order-by=reverse
 ```
 
-It covers both extensions, every command including the `hg:run-jobs` shim, the logger, the test
-job and `Setup`. Cron entries and jobs are inserted inside a rolled-back transaction, with the test
-clock far in the past so only those rows are due; mail, the job queue, the error log, the registry
-and the simpleCache are faked; the run commands run against a mocked job manager. **Nothing on the
-forum runs or changes.** A run leaves the error log, the job queue and the registry exactly as it
-found them — worth confirming by counting them either side when the suite changes.
+It covers both extensions, every command including the `hg:run-jobs` shim and each health check, the
+logger, the test job and `Setup`. Cron entries and jobs are inserted inside a rolled-back
+transaction, with the test clock far in the past so only those rows are due; mail, the job queue,
+the error log, the registry and the simpleCache are faked; the run commands run against a mocked job
+manager. **Nothing on the forum runs or changes.** A run leaves the error log, the job queue and the
+registry exactly as it found them — worth confirming by counting them either side when the suite
+changes.
 
 Each regression test for a fix since 2.1.3 was confirmed to fail with its fix reverted.
 
@@ -92,6 +96,9 @@ Each regression test for a fix since 2.1.3 was confirmed to fail with its fix re
 - **Upgrade from the last published release** on XenForo 2.2 and 2.3, in a throwaway install. Then
   run the job queue and check the server error log — the file clean-up runs after the upgrade
   reports success.
+- **The health check on a real forum.** Run `job-monitor:health-check` on a forum whose cron is
+  healthy and read every line; then stop cron for over an hour and confirm it reports the overdue
+  jobs and cron tasks, and exits 2.
 - **The PHP floor.** The suite needs PHP 8.3 for its own tooling; the add-on promises 7.1. Run
   `job-monitor:run-jobs` once on the oldest PHP a supported XenForo install allows.
 - **`job-monitor:queue-test-job` sends a real email** through the forum's mail transport. Use an

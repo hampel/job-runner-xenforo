@@ -42,6 +42,7 @@ XenForo's scheduled tasks. `job-monitor:show-crons` shows when each is next due.
 
 | command | does |
 |---|---|
+| `job-monitor:health-check` | check that the job queue and cron are running; `--fix` queues a missing cron job again |
 | `job-monitor:run-jobs` | run outstanding jobs and due cron tasks by hand, logging each as it runs |
 | `job-monitor:show-jobs` | list the job queue; `--all` for more than 100 |
 | `job-monitor:show-crons` | list cron tasks and when each is next due; `--all` includes inactive ones, `--method` shows each callback, `--sort=id\|addon\|date` |
@@ -60,6 +61,30 @@ It exits 0 when it has run and 1 when XenForo cannot run jobs at all. `job-monit
 
 It is safe to run while cron is running `xf:run-jobs`: XenForo claims each job before running it,
 so the two never run the same job.
+
+## Health check
+
+`job-monitor:health-check` reports whether jobs and cron are actually running, one line per check:
+
+| check | a problem when |
+|---|---|
+| Job trigger | never — says which trigger the forum uses |
+| Cron job queued | XenForo's `cron` job is missing from the queue, so no scheduled task will run until a cron entry is next saved |
+| Overdue jobs | the oldest due job has waited more than 5 minutes (a warning) or an hour (a problem) |
+| Overdue cron tasks | a cron task is more than an hour past its next run |
+| Admin warning | the admin control panel is showing "There are scheduled jobs outstanding which have not run" (a warning) |
+| Manual jobs | a manually started job has stopped, such as a rebuild left unfinished in a browser (a warning) |
+| Crontab | `hg:run-jobs` has run in the last two hours, so a crontab still needs changing (a warning) |
+
+It changes nothing unless you pass `--fix`, which does the one repair it knows: queue a missing
+`cron` job again, as XenForo does when a cron entry is saved.
+
+It exits 0 when everything is fine, 1 on a warning and 2 on a problem, so a monitoring system can
+run it as it stands:
+
+```bash
+php cmd.php job-monitor:health-check || echo "jobs or cron need attention"
+```
 
 ## Logging
 

@@ -16,8 +16,9 @@ This file covers only what is specific to this add-on.
 ## What this add-on is
 
 **Command-line tools for watching and diagnosing the job queue and cron — not a job runner.** Cron
-runs XenForo's own `xf:run-jobs`; this add-on is what a person runs by hand to see what it is doing.
-Its commands are `job-monitor:run-jobs` (run the queue and log each job and cron entry),
+runs XenForo's own `xf:run-jobs`; this add-on is what a person, or a monitoring system, runs to see
+what it is doing. Its commands are `job-monitor:health-check` (is the queue and cron running; exits
+0, 1 or 2), `job-monitor:run-jobs` (run the queue and log each job and cron entry),
 `job-monitor:show-jobs`, `job-monitor:show-crons`, `job-monitor:run-cron <id>` and
 `job-monitor:queue-test-job <email>`. There are no options, templates, phrases, routes or listeners
 — `_output/` holds only two class extensions.
@@ -25,8 +26,8 @@ Its commands are `job-monitor:run-jobs` (run the queue and log each job and cron
 **`hg:run-jobs` is a compatibility shim, not a command of the add-on's own.** Before 3.0.0 the
 add-on *was* the runner and people put `hg:run-jobs` in their crontab, so it survives as a wrapper
 that runs `xf:run-jobs` with the same options. **It must stay silent** — cron mails any output — and
-records its use in the simpleCache instead, for a future health check to report. The other `hg:`
-names are Symfony aliases of the `job-monitor:` commands, for the 3.x line only.
+records its use in the simpleCache instead, which `job-monitor:health-check` reports. The other
+`hg:` names are Symfony aliases of the `job-monitor:` commands, for the 3.x line only.
 
 ## How a run is wired together
 
