@@ -10,27 +10,22 @@ class CalculateNextRun extends XFCP_CalculateNextRun
 	{
 		$this->debug("updateCronRunTimeAtomic");
 
-		$runRules = $entry['run_rules'];
-		$nextRun = $this->calculateNextRunTime($runRules);
+		$claimed = parent::updateCronRunTimeAtomic($entry);
 
-		$updateResult = $this->db()->update(
-			'xf_cron_entry',
-			['next_run' => $nextRun],
-			'entry_id = ? AND next_run = ?',
-			[$entry['entry_id'], $entry['next_run']]
-		);
-
-		// JobRunner addon
-		if ((bool)$updateResult)
+		// read the new next run back only when it will be logged - at normal verbosity this is core's method
+		if ($claimed && ($logger = $this->getLogger()) && $logger->isVeryVerbose())
 		{
+			$nextRun = intval($this->db()->fetchOne(
+				'SELECT next_run FROM xf_cron_entry WHERE entry_id = ?', $entry['entry_id']
+			));
+
 			$this->logVeryVerbose(
 				"Cron entry [{$entry['entry_id']}] next run time updated",
 				['nextRun' => $nextRun, 'nextRun_formatted' => date("Y-m-d H:i:s T", $nextRun)]
 			);
 		}
-		// end JobRunner addon
 
-		return (bool)$updateResult;
+		return $claimed;
 	}
 
 	public function getMinimumNextRunTime()

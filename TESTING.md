@@ -39,10 +39,10 @@ All three register on their XenForo 2.2 class names, which 2.3 resolves through 
 
 ## Fragile points
 
-- **Three methods are copies of XenForo's, not wrappers**, and a XenForo release can change the
-  original without the copy noticing: `Cron::run()`, `CalculateNextRun::updateCronRunTimeAtomic()`,
-  and the query in `Manager::getRunnable()`, which has one branch per XenForo line because 2.3
-  added priority ordering. Diff each against the new release's core before declaring it supported.
+- **Two methods are copies of XenForo's, not wrappers**, and a XenForo release can change the
+  original without the copy noticing: `Cron::run()`, and the query in `Manager::getRunnable()`,
+  which has one branch per XenForo line because 2.3 added priority ordering. Diff both against the
+  new release's core before declaring it supported.
 - **The catch around each cron callback must be `\Throwable`.** On XenForo 2.3 an `Error` escaping
   `Cron::run()` fails the job, and core then removes the cron job from the queue until a cron entry
   is next saved — every scheduled task on the forum stops. On 2.2 the `Error` escapes `hg:run-jobs`
