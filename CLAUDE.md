@@ -19,14 +19,22 @@ This file covers only what is specific to this add-on.
 runs XenForo's own `xf:run-jobs`; this add-on is what a person, or a monitoring system, runs to see
 what it is doing. Its commands are `job-monitor:health-check` (is the queue and cron running; exits
 0, 1 or 2), `job-monitor:run-jobs` (run the queue and log each job and cron entry),
-`job-monitor:show-jobs`, `job-monitor:show-failed-jobs`, `job-monitor:show-crons`,
-`job-monitor:run-cron <id>` and `job-monitor:queue-test-job <email>`. There are no options,
-templates, routes or listeners — `_output/` holds two class extensions, and the daily cron entry
-that prunes failed jobs with its title phrase.
+`job-monitor:show-jobs`, `job-monitor:show-failed-jobs`, `job-monitor:show-stats`,
+`job-monitor:show-crons`, `job-monitor:run-cron <id>` and `job-monitor:queue-test-job <email>`.
+There are no options, templates, routes or listeners — `_output/` holds two class extensions, and
+the daily `jobMonitorPrune` cron entry with its title phrase.
 
-**On XenForo 2.3 the add-on records every failed job, not only in debug mode** — the `Manager`
-extension's `logFailedJob()` writes the `xf_failed_job` row when core declines — and
-`Cron\FailedJobs::prune()` deletes rows older than 30 days, since core never does.
+**The add-on records, under any runner:**
+- **every job and cron entry's run time**, as hourly buckets in its one table,
+  `xf_hampel_jobrunner_stat` (`Repository\Stats`). The `Manager` extension times each
+  `runJobInternal()` and `CalculateNextRun` each cron entry, whether or not anything is logging;
+- **every failed job on XenForo 2.3, not only in debug mode** — the `Manager` extension's
+  `logFailedJob()` writes the `xf_failed_job` row when core declines.
+
+`Cron\Prune::prune()` deletes failed jobs after 30 days and statistics after 90, since core prunes
+neither. **Recording must never break the job it measures**: every statistics write swallows its
+own failure, including the table not existing yet — the state during an upgrade from before 3.0.0,
+when the new code runs before `Setup` has created it.
 
 **`hg:run-jobs` is a compatibility shim, not a command of the add-on's own.** Before 3.0.0 the
 add-on *was* the runner and people put `hg:run-jobs` in their crontab, so it survives as a wrapper
@@ -190,6 +198,14 @@ behind; that is expected, not a bump to take.
 forum's `xf_failed_job`; they were found by counting the table either side and deleted. So
 `FailedJobsTest` calls `logFailedJob()` through reflection instead. Count any table a new test
 writes before and after the suite. Reported to the test framework, which does not detect it.
+
+### Never call Setup's install, upgrade or uninstall from a test
+
+**They create or drop `xf_hampel_jobrunner_stat`, and DDL is not transactional**, so the change is
+made to the forum's real schema whatever wrapper the test uses. On 2026-09-29 `SetupTest`, written
+before the table existed, called `uninstall()` and dropped the development forum's table; it was
+found only because a command then failed on it. `SetupTest` now calls the lock-file clean-up
+through reflection and checks the rest from the source. Schema changes are tested in the sandbox.
 
 ### A class can be extended in only one test per run
 

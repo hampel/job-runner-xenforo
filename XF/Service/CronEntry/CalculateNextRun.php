@@ -1,6 +1,7 @@
 <?php namespace Hampel\JobRunner\XF\Service\CronEntry;
 
 use Hampel\JobRunner\Cli\LoggerTrait;
+use Hampel\JobRunner\Repository\Stats as StatsRepository;
 
 /**
  * Per-entry cron logging, without copying XenForo's Cron::run().
@@ -26,6 +27,12 @@ class CalculateNextRun extends XFCP_CalculateNextRun
 
 		$claimed = parent::updateCronRunTimeAtomic($entry);
 
+		// timed on every pass, under any runner - the statistics must not depend on the logger
+		if ($claimed)
+		{
+			$this->runningCronEntry = ['entry_id' => $entry['entry_id'], 'start' => microtime(true)];
+		}
+
 		if (!$logger = $this->getLogger())
 		{
 			return $claimed;
@@ -39,7 +46,6 @@ class CalculateNextRun extends XFCP_CalculateNextRun
 		}
 
 		$logger->logCronStart(self::class, $entry);
-		$this->runningCronEntry = ['entry_id' => $entry['entry_id'], 'start' => microtime(true)];
 
 		// read the new next run back only when it will be logged - at normal verbosity this is core's method
 		if ($logger->isVeryVerbose())
@@ -88,7 +94,7 @@ class CalculateNextRun extends XFCP_CalculateNextRun
 	}
 
 	/**
-	 * Log the running entry's execution time, if there is one.
+	 * Record, and log, the running entry's execution time, if there is one.
 	 *
 	 * @return bool whether an entry had been running
 	 */
@@ -99,10 +105,16 @@ class CalculateNextRun extends XFCP_CalculateNextRun
 			return false;
 		}
 
+		$seconds = microtime(true) - $this->runningCronEntry['start'];
+
+		/** @var StatsRepository $stats */
+		$stats = $this->app->repository(StatsRepository::class);
+		$stats->recordRun(StatsRepository::TYPE_CRON, $this->runningCronEntry['entry_id'], $seconds * 1000);
+
 		$this->log(sprintf(
 			"Cron entry [%s] executed in %01.2f seconds",
 			$this->runningCronEntry['entry_id'],
-			microtime(true) - $this->runningCronEntry['start']
+			$seconds
 		));
 
 		$this->runningCronEntry = null;

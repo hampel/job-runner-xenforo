@@ -1,7 +1,7 @@
 <?php namespace Tests\Feature;
 
 use Hampel\JobRunner\Cli\Command\ShowFailedJobs;
-use Hampel\JobRunner\Cron\FailedJobs;
+use Hampel\JobRunner\Cron\Prune;
 use Hampel\JobRunner\Service\HealthCheck;
 use Hampel\Testing\Concerns\UsesDatabaseTransactions;
 use Tests\Fixtures\Job\FailingJob;
@@ -87,10 +87,10 @@ class FailedJobsTest extends TestCase
 
 	public function test_prune_deletes_records_older_than_thirty_days()
 	{
-		$old = $this->insertFailedJob('Old\Job', self::NOW - (FailedJobs::RETAIN_DAYS + 1) * 86400);
+		$old = $this->insertFailedJob('Old\Job', self::NOW - (Prune::FAILED_JOB_DAYS + 1) * 86400);
 		$recent = $this->insertFailedJob('Recent\Job', self::NOW - 86400);
 
-		FailedJobs::prune();
+		Prune::pruneFailedJobs();
 
 		$this->assertDatabaseMissing('xf_failed_job', ['failed_job_id' => $old]);
 		$this->assertDatabaseHas('xf_failed_job', ['failed_job_id' => $recent]);

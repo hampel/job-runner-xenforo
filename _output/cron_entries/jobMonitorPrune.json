@@ -1,5 +1,5 @@
 {
-    "cron_class": "Hampel\\JobRunner\\Cron\\FailedJobs",
+    "cron_class": "Hampel\\JobRunner\\Cron\\Prune",
     "cron_method": "prune",
     "run_rules": {
         "day_type": "dom",

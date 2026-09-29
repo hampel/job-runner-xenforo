@@ -9,8 +9,8 @@ needs a person with a forum and a crontab.
 
 | extends | with | why |
 |---|---|---|
-| `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | logs the runnable jobs and each job's timing; records every failed job on 2.3, not only in debug mode; changes nothing about which jobs run |
-| `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | logs each cron entry as it starts and how long it ran, and the next one due |
+| `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | times every job run into the statistics; logs the runnable jobs; records every failed job on 2.3, not only in debug mode; changes nothing about which jobs run |
+| `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | times every cron entry into the statistics; logs each as it starts and how long it ran, and the next one due |
 
 Both register on their XenForo 2.2 class names, which 2.3 resolves through its aliases. Both call
 the parent in every method and only add logging, which happens only when `cli.logger` exists — so
@@ -24,6 +24,7 @@ under anything but `job-monitor:run-jobs` they add nothing.
 | `job-monitor:run-jobs` | runs the queue by hand, logging each job and cron entry; boots `Hampel\JobRunner\App` for the logger |
 | `job-monitor:show-jobs` | lists the job queue |
 | `job-monitor:show-failed-jobs` | lists `xf_failed_job`, newest first, or one row in full; on 2.2 says there is none |
+| `job-monitor:show-stats` | totals from `xf_hampel_jobrunner_stat` over a period, or one name hour by hour |
 | `job-monitor:show-crons` | lists cron entries and when each is next due |
 | `job-monitor:run-cron <id>` | runs one cron entry now, as the scheduler would |
 | `job-monitor:queue-test-job <email>` | queues a job that sends one email to that address |
@@ -37,10 +38,13 @@ The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x lin
   written at most hourly, and read by the health check.
 - `Setup::upgrade()` and `uninstall()` delete `internal-data://run-jobs-lock.txt`, which versions
   before 3.0.0 could leave behind.
-- A cron entry, `jobMonitorPruneFailed` (daily, 03:17), calling `Cron\FailedJobs::prune()` to delete
-  `xf_failed_job` rows older than 30 days; with its title phrase `cron_entry.jobMonitorPruneFailed`.
-  A no-op on 2.2.
-- No options, templates, routes, permissions, listeners or database tables of its own.
+- A table, `xf_hampel_jobrunner_stat`: runs, total and maximum milliseconds and failures per job
+  class or cron entry per hour. `Setup` creates it on install and on any upgrade that finds it
+  missing, and drops it on uninstall.
+- A cron entry, `jobMonitorPrune` (daily, 03:17), calling `Cron\Prune::prune()`: deletes
+  `xf_failed_job` rows older than 30 days (2.3 only) and statistics older than 90; with its title
+  phrase `cron_entry.jobMonitorPrune`.
+- No options, templates, routes, permissions or listeners.
 
 ## Fragile points
 
@@ -54,6 +58,12 @@ The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x lin
   debug mode and returns false otherwise; the override writes it when core declined, never twice.
   On 2.2 the method is never called. A XenForo release that renames it or changes its signature
   breaks the extension at class load.
+- **Recording must never break a job.** Every statistics write swallows its own failure, because
+  an upgrade from 2.x runs the new code before `Setup` has created the table. A write that threw
+  would fail the job it was timing.
+- **Tests must never call `Setup::install()`, `upgrade()` or `uninstall()`.** They create or drop
+  the statistics table, DDL cannot be rolled back, and the test would change the forum's real
+  schema. The sandbox upgrade test covers them.
 - **The health check's exit codes are an interface.** 0, 1 and 2 are what monitoring reads;
   changing their meaning breaks every alert built on them. `HealthCheckTest` pins all three.
 - **`hg:run-jobs` must stay silent.** Cron mails any output, so anything it printed would arrive
@@ -81,7 +91,7 @@ vendor/bin/phpunit --order-by=reverse
 ```
 
 It covers both extensions, every command including the `hg:run-jobs` shim and each health check,
-failed-job recording and pruning, the
+failed-job and statistics recording and pruning, the
 logger, the test job and `Setup`. Cron entries and jobs are inserted inside a rolled-back
 transaction, with the test clock far in the past so only those rows are due; mail, the job queue,
 the error log, the registry and the simpleCache are faked; the run commands run against a mocked job
@@ -104,7 +114,8 @@ Each regression test for a fix since 2.1.3 was confirmed to fail with its fix re
   it logs each job and cron entry with no flags.
 - **Upgrade from the last published release** on XenForo 2.2 and 2.3, in a throwaway install. Then
   run the job queue and check the server error log — the file clean-up runs after the upgrade
-  reports success.
+  reports success. Confirm `xf_hampel_jobrunner_stat` exists and fills as jobs run, and that
+  uninstalling drops it.
 - **The health check on a real forum.** Run `job-monitor:health-check` on a forum whose cron is
   healthy and read every line; then stop cron for over an hour and confirm it reports the overdue
   jobs and cron tasks, and exits 2.

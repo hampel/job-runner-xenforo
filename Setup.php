@@ -4,13 +4,17 @@ use XF\AddOn\AbstractSetup;
 
 class Setup extends AbstractSetup
 {
+	/** hourly job and cron statistics - see Repository\Stats */
+	const STATS_TABLE = 'xf_hampel_jobrunner_stat';
+
 	public function install(array $stepParams = [])
 	{
-		// Nothing to do
+		$this->createStatsTable();
 	}
 
 	public function upgrade(array $stepParams = [])
 	{
+		$this->createStatsTable();
 		$this->removeLegacyLockFile();
 	}
 
@@ -23,7 +27,35 @@ class Setup extends AbstractSetup
 
 	public function uninstall(array $stepParams = [])
 	{
+		$this->app->db()->getSchemaManager()->dropTable(self::STATS_TABLE);
 		$this->removeLegacyLockFile();
+	}
+
+	/**
+	 * One row per job class or cron entry per hour. Created on install, and on every upgrade when
+	 * missing, so an upgrade from any earlier version gets it and a repeated upgrade is harmless.
+	 */
+	protected function createStatsTable()
+	{
+		$schema = $this->app->db()->getSchemaManager();
+
+		if ($schema->tableExists(self::STATS_TABLE))
+		{
+			return;
+		}
+
+		$schema->createTable(self::STATS_TABLE, function (\XF\Db\Schema\Create $table)
+		{
+			$table->addColumn('type', 'varbinary', 10);
+			$table->addColumn('name', 'varchar', 100);
+			$table->addColumn('period_start', 'int')->unsigned();
+			$table->addColumn('runs', 'int')->unsigned()->setDefault(0);
+			$table->addColumn('total_ms', 'int')->unsigned()->setDefault(0);
+			$table->addColumn('max_ms', 'int')->unsigned()->setDefault(0);
+			$table->addColumn('failures', 'int')->unsigned()->setDefault(0);
+			$table->addPrimaryKey(['type', 'name', 'period_start']);
+			$table->addKey('period_start');
+		});
 	}
 
 	/**

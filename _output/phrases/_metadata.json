@@ -1,8 +1,8 @@
 {
-    "cron_entry.jobMonitorPruneFailed.txt": {
+    "cron_entry.jobMonitorPrune.txt": {
         "global_cache": false,
         "version_id": 3000011,
         "version_string": "3.0.0a1",
-        "hash": "fcef7231ebd9cd8138102cd06fa5b2b8"
+        "hash": "eea9518db3aa1c065c68eeab768b574e"
     }
 }

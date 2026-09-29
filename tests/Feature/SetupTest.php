@@ -41,42 +41,50 @@ class SetupTest extends TestCase
 		$this->assertNoJobsQueued();
 	}
 
-	public function test_install_and_uninstall_change_nothing()
+	/**
+	 * Call Setup's lock-file clean-up directly. install(), upgrade() and uninstall() also create or
+	 * drop the statistics table, and DDL cannot be rolled back, so no test calls them - they would
+	 * change the forum's real schema. The sandbox upgrade test covers that path.
+	 */
+	protected function removeLegacyLockFile()
 	{
-		$this->fakesJobs();
-
-		$this->makeSetup()->install();
-		$this->makeSetup()->uninstall();
-
-		$this->assertNoJobsQueued();
+		$setup = $this->makeSetup();
+		$method = new \ReflectionMethod($setup, 'removeLegacyLockFile');
+		$method->setAccessible(true);
+		$method->invoke($setup);
 	}
 
-	public function test_an_upgrade_removes_the_lock_file_older_versions_left()
+	public function test_the_lock_file_older_versions_left_is_removed()
 	{
 		$this->swapFs('internal-data');
 		$this->app()->fs()->write('internal-data://run-jobs-lock.txt', '1790000000');
 
-		$this->makeSetup()->upgrade();
+		$this->removeLegacyLockFile();
 
 		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
 	}
 
-	public function test_an_upgrade_with_no_lock_file_is_fine()
+	public function test_no_lock_file_is_fine()
 	{
 		$this->swapFs('internal-data');
 
-		$this->makeSetup()->upgrade();
+		$this->removeLegacyLockFile();
 
 		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
 	}
 
-	public function test_uninstall_removes_the_lock_file_too()
+	public function test_upgrade_and_uninstall_both_remove_the_lock_file()
 	{
-		$this->swapFs('internal-data');
-		$this->app()->fs()->write('internal-data://run-jobs-lock.txt', '1790000000');
+		// read from the source rather than called: both also run DDL, see removeLegacyLockFile()
+		$source = file_get_contents(__DIR__ . '/../../Setup.php');
 
-		$this->makeSetup()->uninstall();
-
-		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
+		foreach (['upgrade', 'uninstall'] AS $method)
+		{
+			$this->assertMatchesRegularExpression(
+				'/function ' . $method . '\(.*?\{[^}]*removeLegacyLockFile\(\)/s',
+				$source,
+				"{$method}() should remove the legacy lock file"
+			);
+		}
 	}
 }

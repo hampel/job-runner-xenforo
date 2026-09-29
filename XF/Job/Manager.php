@@ -1,6 +1,7 @@
 <?php namespace Hampel\JobRunner\XF\Job;
 
 use Hampel\JobRunner\Cli\LoggerTrait;
+use Hampel\JobRunner\Repository\Stats as StatsRepository;
 use XF\Job\JobResult;
 
 class Manager extends XFCP_Manager
@@ -54,12 +55,28 @@ class Manager extends XFCP_Manager
 	{
 		$this->debug("runJobInternal");
 
-		if (!$logger = $this->getLogger()) return parent::runJobInternal($job, $maxRunTime);
-		$logger->logJobStart(self::class, $job);
+		$logger = $this->getLogger();
+		if ($logger)
+		{
+			$logger->logJobStart(self::class, $job);
+		}
 
-		$jobResult = parent::runJobInternal($job, $maxRunTime);
+		// timed on every run, under any runner - the statistics must not depend on the logger
+		$start = microtime(true);
 
-		$logger->logJobCompletion(self::class, $job['execute_class'], $jobResult);
+		try
+		{
+			$jobResult = parent::runJobInternal($job, $maxRunTime);
+		}
+		finally
+		{
+			$this->statsRepo()->recordRun(StatsRepository::TYPE_JOB, $job['execute_class'], (microtime(true) - $start) * 1000);
+		}
+
+		if ($logger)
+		{
+			$logger->logJobCompletion(self::class, $job['execute_class'], $jobResult);
+		}
 
 		return $jobResult;
 	}
@@ -68,11 +85,13 @@ class Manager extends XFCP_Manager
 	 * Record every failed job, not only in debug mode.
 	 *
 	 * XenForo 2.3 writes a failed job to xf_failed_job only when debug mode is on, and has no screen
-	 * for it; job-monitor:show-failed-jobs reads the table, and the Cron\FailedJobs task prunes it.
+	 * for it; job-monitor:show-failed-jobs reads the table, and the Cron\Prune task prunes it.
 	 * Never called on XenForo 2.2, which has no failed-job state.
 	 */
 	protected function logFailedJob(array $job, \Exception $exception): bool
 	{
+		$this->statsRepo()->recordFailure(StatsRepository::TYPE_JOB, $job['execute_class']);
+
 		if (parent::logFailedJob($job, $exception))
 		{
 			return true;
@@ -86,5 +105,13 @@ class Manager extends XFCP_Manager
 		]);
 
 		return true;
+	}
+
+	/**
+	 * @return StatsRepository
+	 */
+	protected function statsRepo()
+	{
+		return $this->app->repository(StatsRepository::class);
 	}
 }

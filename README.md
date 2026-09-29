@@ -46,6 +46,7 @@ XenForo's scheduled tasks. `job-monitor:show-crons` shows when each is next due.
 | `job-monitor:run-jobs` | run outstanding jobs and due cron tasks by hand, logging each as it runs |
 | `job-monitor:show-jobs` | list the job queue; `--all` for more than 100 |
 | `job-monitor:show-failed-jobs` | list jobs that failed, newest first; `--id` shows one in full. XenForo 2.3 or later |
+| `job-monitor:show-stats` | how often each job and cron task ran and how long it took; `--name` shows one hour by hour |
 | `job-monitor:show-crons` | list cron tasks and when each is next due; `--all` includes inactive ones, `--method` shows each callback, `--sort=id\|addon\|date` |
 | `job-monitor:run-cron <id>` | run one cron task now, as the scheduler would; `--force` runs a disabled one |
 | `job-monitor:queue-test-job <email>` | queue a job that sends one test email to that address |
@@ -101,6 +102,21 @@ php cmd.php job-monitor:show-failed-jobs --id=24    # one in full, with its stac
 
 A daily cron task deletes records older than 30 days, including those XenForo wrote in debug mode,
 which it otherwise keeps forever. The health check warns when any job has failed in the last day.
+
+## Statistics
+
+Every job and cron task that runs is timed — whichever command runs it, cron's `xf:run-jobs`
+included, and on page views under activity-based triggering — and kept hour by hour for 90 days:
+
+```bash
+php cmd.php job-monitor:show-stats                        # the last 24 hours, by total time
+php cmd.php job-monitor:show-stats --sort=max             # the slowest single runs
+php cmd.php job-monitor:show-stats --type=cron --hours=168
+php cmd.php job-monitor:show-stats --name='XF\Job\Cron'   # one, hour by hour
+```
+
+`--sort` takes `time` (the default), `runs`, `max` or `avg`; `--type` takes `job` or `cron`;
+`--limit` sets how many rows. Failures are counted alongside runs on XenForo 2.3.
 
 XenForo 2.2 has no record of failed jobs: a job that throws is logged to the server error log and
 treated as complete.

@@ -1,6 +1,6 @@
 <?php namespace Hampel\JobRunner\Cli\Command;
 
-use Hampel\JobRunner\Cron\FailedJobs;
+use Hampel\JobRunner\Cron\Prune;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
@@ -101,7 +101,7 @@ class ShowFailedJobs extends Command
 		$output->writeln('');
 		$output->writeln(sprintf(
 			'Use --id to see one in full. Records older than %d days are pruned daily.',
-			FailedJobs::RETAIN_DAYS
+			Prune::FAILED_JOB_DAYS
 		));
 		$output->writeln('');
 
