@@ -1,8 +1,24 @@
 # Changelog
 
+## 2.1.3 (2026-09-29)
+
+* now requires PHP 7.1 or later, up from 7.0 - XenForo 2.3 already requires 7.2, so this affects
+  XenForo 2.2 forums only
+* bugfix: a cron task throwing an `Error`, such as a `TypeError`, no longer stops the rest of the
+  cron tasks due in that run. On XenForo 2.3 it also removed the `cron` job from the queue, which
+  stopped every scheduled task on the forum until a cron entry was next saved; on XenForo 2.2 it
+  crashed `hg:run-jobs`
+* bugfix: `hg:run-jobs` releases its lock when a job throws, rather than leaving it in place and
+  refusing every run for up to ten minutes with `JobRunner already running.`
+* bugfix: `hg:run-cron` runs a cron task's class as extended by other add-ons, the same code the
+  scheduler runs, and reports an `Error` from the task rather than failing with a PHP fatal error
+* `hg:run-jobs --help` gives the real maximum for `--max-execution-time`: 600 seconds, not 900
+* README rewritten: requirements, setting up cron and the **Job run trigger** option, and every
+  command with its options
+
 ## 2.1.2 (2025-12-12)
 
-* run enqueuePostUpgradeCleanUp during upgrades if we're running XF2.3+
+* run `enqueuePostUpgradeCleanUp()` during upgrades if we're running XF2.3+
 
 ## 2.1.1 (2024-07-12)
 
