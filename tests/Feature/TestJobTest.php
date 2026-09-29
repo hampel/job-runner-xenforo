@@ -1,12 +1,12 @@
 <?php namespace Tests\Feature;
 
-use Hampel\JobRunner\Cli\Command\TestJobs;
+use Hampel\JobRunner\Cli\Command\QueueTestJob;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tests\TestCase;
 use XF\Job\JobResult;
 
 /**
- * hg:test-jobs and the job it queues. Mail and the queue are faked: nothing is sent or stored.
+ * job-monitor:queue-test-job and the job it queues. Mail and the queue are faked: nothing is sent or stored.
  */
 class TestJobTest extends TestCase
 {
@@ -16,7 +16,7 @@ class TestJobTest extends TestCase
 	{
 		$this->fakesJobs();
 
-		$tester = $this->runConsoleCommand(new TestJobs(), ['email' => $this->email]);
+		$tester = $this->runConsoleCommand(new QueueTestJob(), ['email' => $this->email]);
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertJobQueuedTimes('Hampel\JobRunner:TestJob', 1);

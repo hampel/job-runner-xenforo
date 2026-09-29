@@ -122,7 +122,7 @@ class CronJobTest extends TestCase
 
 	public function test_without_a_logger_the_core_pass_still_runs_the_entries()
 	{
-		// no cli.logger - outside hg:run-jobs the extension defers to XenForo's own run()
+		// no cli.logger - outside job-monitor:run-jobs the extension defers to XenForo's own run()
 		$this->insertCronEntry('jrTestCore', 'record', 100);
 
 		$this->runCronJob();

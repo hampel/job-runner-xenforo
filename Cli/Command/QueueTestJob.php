@@ -5,13 +5,14 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class TestJobs extends Command
+class QueueTestJob extends Command
 {
 	protected function configure()
 	{
 		$this
-			->setName('hg:test-jobs')
-			->setDescription('Generate a test job')
+			->setName('job-monitor:queue-test-job')
+			->setAliases(['hg:test-jobs'])
+			->setDescription('Queues a job that sends one test email to the given address.')
 			->addArgument(
 				'email',
 				InputArgument::REQUIRED,

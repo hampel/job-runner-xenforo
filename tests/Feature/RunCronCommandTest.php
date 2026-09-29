@@ -7,7 +7,7 @@ use Tests\Fixtures\ExtendedCronCallbacks;
 use Tests\TestCase;
 
 /**
- * hg:run-cron - run one cron entry on demand, the way the scheduler would.
+ * job-monitor:run-cron - run one cron entry on demand, the way the scheduler would.
  */
 class RunCronCommandTest extends TestCase
 {

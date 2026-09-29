@@ -40,7 +40,7 @@ abstract class TestCase extends BaseTestCase
 	}
 
 	/**
-	 * Register a cli.logger the way Hampel\JobRunner\App and hg:run-jobs do between them, writing to
+	 * Register a cli.logger the way Hampel\JobRunner\App and job-monitor:run-jobs do between them, writing to
 	 * a buffer the test can read back.
 	 */
 	protected function useCliLogger($verbosity = OutputInterface::VERBOSITY_DEBUG): BufferedOutput

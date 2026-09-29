@@ -11,8 +11,9 @@ class ShowJobs extends Command
 	protected function configure()
 	{
 		$this
-			->setName('hg:show-jobs')
-			->setDescription('Show pending jobs in the job queue')
+			->setName('job-monitor:show-jobs')
+			->setAliases(['hg:show-jobs'])
+			->setDescription('Shows the jobs waiting in the job queue.')
 			->addOption(
 				'all',
 				'a',

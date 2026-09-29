@@ -6,7 +6,7 @@ use Hampel\Testing\Concerns\UsesDatabaseTransactions;
 use Tests\TestCase;
 
 /**
- * hg:show-crons and hg:show-jobs.
+ * job-monitor:show-crons and job-monitor:show-jobs.
  */
 class ShowCommandsTest extends TestCase
 {

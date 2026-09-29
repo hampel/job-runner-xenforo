@@ -11,8 +11,9 @@ class ShowCrons extends Command
 	protected function configure()
 	{
 		$this
-			->setName('hg:show-crons')
-			->setDescription('Show all cron entries')
+			->setName('job-monitor:show-crons')
+			->setAliases(['hg:show-crons'])
+			->setDescription('Shows cron tasks and when each is next due.')
 			->addOption(
 				'all',
 				'a',

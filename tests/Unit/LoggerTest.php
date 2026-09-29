@@ -46,7 +46,7 @@ class LoggerTest extends TestCase
 
 	public function test_a_logger_without_output_does_nothing()
 	{
-		// cli.output is null until hg:run-jobs sets it, so this has to be a no-op, not a TypeError
+		// cli.output is null until job-monitor:run-jobs sets it, so this has to be a no-op, not a TypeError
 		$logger = new Logger(null);
 
 		$logger->log('Foo', 'message', ['a' => 1]);

@@ -11,8 +11,9 @@ class RunCron extends Command
 	protected function configure()
 	{
 		$this
-			->setName('hg:run-cron')
-			->setDescription('Execute a cron task')
+			->setName('job-monitor:run-cron')
+			->setAliases(['hg:run-cron'])
+			->setDescription('Runs one cron task now, as the scheduler would.')
 			->addArgument(
 				'id',
 				InputArgument::REQUIRED,
