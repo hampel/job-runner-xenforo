@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.4 (2026-09-29)
+
+* bugfix: under server-based job triggering, the admin control panel no longer reports "There are
+  scheduled jobs outstanding which have not run" when jobs are running normally. The add-on had
+  stopped XenForo recording when the next job was due, so the check read a time that never moved
+
 ## 2.1.3 (2026-09-29)
 
 * now requires PHP 7.1 or later, up from 7.0 - XenForo 2.3 already requires 7.2, so this affects
