@@ -1,0 +1,1 @@
+Job & Cron Monitor: prune failed jobs older than 30 days

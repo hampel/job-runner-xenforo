@@ -1,0 +1,17 @@
+{
+    "cron_class": "Hampel\\JobRunner\\Cron\\FailedJobs",
+    "cron_method": "prune",
+    "run_rules": {
+        "day_type": "dom",
+        "dom": [
+            -1
+        ],
+        "hours": [
+            3
+        ],
+        "minutes": [
+            17
+        ]
+    },
+    "active": true
+}

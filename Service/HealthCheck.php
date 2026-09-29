@@ -24,6 +24,9 @@ class HealthCheck extends AbstractService
 	/** a cron entry this far past its next run, in seconds, is not being scheduled */
 	const CRON_PROBLEM_AGE = 3600;
 
+	/** a job that failed within this long, in seconds, is reported */
+	const FAILED_RECENT = 86400;
+
 	/** hg:run-jobs used within this long means a crontab still calls it */
 	const LEGACY_RECENT = 7200;
 
@@ -39,6 +42,7 @@ class HealthCheck extends AbstractService
 			$this->checkOverdueCronEntries(),
 			$this->checkAdminWarning(),
 			$this->checkManualJobs(),
+			$this->checkFailedJobs(),
 			$this->checkLegacyCrontab(),
 		];
 	}
@@ -184,6 +188,42 @@ class HealthCheck extends AbstractService
 		}
 
 		return $this->result('manual_jobs', 'Manual jobs', self::OK, 'No manually started job is stuck.');
+	}
+
+	public function checkFailedJobs()
+	{
+		if (\XF::$versionId < 2030000)
+		{
+			return $this->result('failed_jobs', 'Failed jobs', self::OK,
+				'XenForo 2.2 does not record failed jobs; check the server error log.');
+		}
+
+		$classes = $this->db()->fetchPairs("
+			SELECT execute_class, COUNT(*)
+			FROM xf_failed_job
+			WHERE fail_date >= ?
+			GROUP BY execute_class
+			ORDER BY COUNT(*) DESC
+		", \XF::$time - self::FAILED_RECENT);
+
+		if (!$classes)
+		{
+			return $this->result('failed_jobs', 'Failed jobs', self::OK, 'No job has failed in the last day.');
+		}
+
+		$described = [];
+		foreach (array_slice($classes, 0, 3, true) AS $class => $count)
+		{
+			$described[] = "{$class} ({$count})";
+		}
+
+		return $this->result('failed_jobs', 'Failed jobs', self::WARNING, sprintf(
+			'%d %s failed in the last day: %s%s. See job-monitor:show-failed-jobs.',
+			array_sum($classes),
+			array_sum($classes) == 1 ? 'job' : 'jobs',
+			implode(', ', $described),
+			count($classes) > 3 ? ', ...' : ''
+		));
 	}
 
 	public function checkLegacyCrontab()

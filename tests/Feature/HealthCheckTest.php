@@ -24,6 +24,12 @@ class HealthCheckTest extends TestCase
 		// every real job and cron entry is due later than this, so only rows a test inserts are due
 		$this->setTestTime(100000);
 
+		// the forum's real failed jobs are dated after this test clock, so they would count as recent
+		if (\XF::$versionId >= 2030000)
+		{
+			$this->app()->db()->delete('xf_failed_job', '1=1');
+		}
+
 		// the next-run time the admin index reads, as a healthy forum would have it
 		$this->app()->registry()->set('autoJobRun', 100000 + 60);
 		$this->app()->container()['job.runTime'] = 100000 + 60;
@@ -57,7 +63,7 @@ class HealthCheckTest extends TestCase
 		$results = $this->health()->run();
 
 		$this->assertSame(HealthCheck::OK, $this->health()->worstStatus($results), json_encode($results));
-		$this->assertCount(7, $results);
+		$this->assertCount(8, $results);
 	}
 
 	public function test_a_missing_cron_job_is_a_problem()

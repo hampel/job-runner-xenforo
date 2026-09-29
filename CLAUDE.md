@@ -19,9 +19,14 @@ This file covers only what is specific to this add-on.
 runs XenForo's own `xf:run-jobs`; this add-on is what a person, or a monitoring system, runs to see
 what it is doing. Its commands are `job-monitor:health-check` (is the queue and cron running; exits
 0, 1 or 2), `job-monitor:run-jobs` (run the queue and log each job and cron entry),
-`job-monitor:show-jobs`, `job-monitor:show-crons`, `job-monitor:run-cron <id>` and
-`job-monitor:queue-test-job <email>`. There are no options, templates, phrases, routes or listeners
-— `_output/` holds only two class extensions.
+`job-monitor:show-jobs`, `job-monitor:show-failed-jobs`, `job-monitor:show-crons`,
+`job-monitor:run-cron <id>` and `job-monitor:queue-test-job <email>`. There are no options,
+templates, routes or listeners — `_output/` holds two class extensions, and the daily cron entry
+that prunes failed jobs with its title phrase.
+
+**On XenForo 2.3 the add-on records every failed job, not only in debug mode** — the `Manager`
+extension's `logFailedJob()` writes the `xf_failed_job` row when core declines — and
+`Cron\FailedJobs::prune()` deletes rows older than 30 days, since core never does.
 
 **`hg:run-jobs` is a compatibility shim, not a command of the add-on's own.** Before 3.0.0 the
 add-on *was* the runner and people put `hg:run-jobs` in their crontab, so it survives as a wrapper
@@ -174,7 +179,17 @@ behind; that is expected, not a bump to take.
 - **Both run commands are tested against a mocked job manager**, so they run no real jobs.
   `LegacyRunJobsCommandTest` runs the `hg:run-jobs` shim and XenForo's `xf:run-jobs` against the
   same mock and requires identical output.
-- **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id.
+- **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id, and
+  `Fixtures/Job/FailingJob` — XenForo only accepts a job class inside a `Job` namespace.
+
+### Never run a failing job through the job manager in a test
+
+**Core's `runJobInternal()` calls `$db->rollbackAll()` when a job throws, which also ends the test's
+`UsesDatabaseTransactions` wrapper — every write after it is committed to the forum for real.** On
+2026-09-29 a test that ran a failing job through `runJobEntry()` left two rows in the development
+forum's `xf_failed_job`; they were found by counting the table either side and deleted. So
+`FailedJobsTest` calls `logFailedJob()` through reflection instead. Count any table a new test
+writes before and after the suite. Reported to the test framework, which does not detect it.
 
 ### A class can be extended in only one test per run
 

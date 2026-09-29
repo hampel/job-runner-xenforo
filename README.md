@@ -45,6 +45,7 @@ XenForo's scheduled tasks. `job-monitor:show-crons` shows when each is next due.
 | `job-monitor:health-check` | check that the job queue and cron are running; `--fix` queues a missing cron job again |
 | `job-monitor:run-jobs` | run outstanding jobs and due cron tasks by hand, logging each as it runs |
 | `job-monitor:show-jobs` | list the job queue; `--all` for more than 100 |
+| `job-monitor:show-failed-jobs` | list jobs that failed, newest first; `--id` shows one in full. XenForo 2.3 or later |
 | `job-monitor:show-crons` | list cron tasks and when each is next due; `--all` includes inactive ones, `--method` shows each callback, `--sort=id\|addon\|date` |
 | `job-monitor:run-cron <id>` | run one cron task now, as the scheduler would; `--force` runs a disabled one |
 | `job-monitor:queue-test-job <email>` | queue a job that sends one test email to that address |
@@ -74,6 +75,7 @@ so the two never run the same job.
 | Overdue cron tasks | a cron task is more than an hour past its next run |
 | Admin warning | the admin control panel is showing "There are scheduled jobs outstanding which have not run" (a warning) |
 | Manual jobs | a manually started job has stopped, such as a rebuild left unfinished in a browser (a warning) |
+| Failed jobs | any job has failed in the last day (a warning; XenForo 2.3 or later) |
 | Crontab | `hg:run-jobs` has run in the last two hours, so a crontab still needs changing (a warning) |
 
 It changes nothing unless you pass `--fix`, which does the one repair it knows: queue a missing
@@ -85,6 +87,23 @@ run it as it stands:
 ```bash
 php cmd.php job-monitor:health-check || echo "jobs or cron need attention"
 ```
+
+## Failed jobs
+
+On XenForo 2.3, a job that throws and cannot be retried is removed from the queue and — in debug
+mode only — recorded. With the add-on installed **every** failure is recorded, debug mode or not,
+so `job-monitor:show-failed-jobs` can show what failed, when, with what data, and why:
+
+```bash
+php cmd.php job-monitor:show-failed-jobs            # the newest 20
+php cmd.php job-monitor:show-failed-jobs --id=24    # one in full, with its stack trace
+```
+
+A daily cron task deletes records older than 30 days, including those XenForo wrote in debug mode,
+which it otherwise keeps forever. The health check warns when any job has failed in the last day.
+
+XenForo 2.2 has no record of failed jobs: a job that throws is logged to the server error log and
+treated as complete.
 
 ## Logging
 

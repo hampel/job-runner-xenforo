@@ -63,4 +63,28 @@ class Manager extends XFCP_Manager
 
 		return $jobResult;
 	}
+
+	/**
+	 * Record every failed job, not only in debug mode.
+	 *
+	 * XenForo 2.3 writes a failed job to xf_failed_job only when debug mode is on, and has no screen
+	 * for it; job-monitor:show-failed-jobs reads the table, and the Cron\FailedJobs task prunes it.
+	 * Never called on XenForo 2.2, which has no failed-job state.
+	 */
+	protected function logFailedJob(array $job, \Exception $exception): bool
+	{
+		if (parent::logFailedJob($job, $exception))
+		{
+			return true;
+		}
+
+		$this->db->insert('xf_failed_job', [
+			'execute_class' => $job['execute_class'],
+			'execute_data' => $job['execute_data'],
+			'exception' => $exception,
+			'fail_date' => time(),
+		]);
+
+		return true;
+	}
 }
