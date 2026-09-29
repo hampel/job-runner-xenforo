@@ -27,7 +27,6 @@ class RunJobsCommandTest extends TestCase
 
 		$this->jobManager = m::mock();
 		$this->jobManager->allows()->canRunJobs()->andReturns(true)->byDefault();
-		$this->jobManager->allows()->setAllowCron(true)->byDefault();
 		$this->jobManager->allows()->queuePending(m::any())->andReturns(false)->byDefault();
 
 		$this->swap('job.manager', function () {
@@ -148,13 +147,5 @@ class RunJobsCommandTest extends TestCase
 		}))->once();
 
 		$this->runConsoleCommand(new RunJobs(), ['--max-execution-time' => 600]);
-	}
-
-	public function test_lets_cron_tasks_into_the_queue()
-	{
-		$this->jobManager->expects()->setAllowCron(true)->once();
-		$this->jobManager->allows()->runQueue(m::any(), m::any());
-
-		$this->runConsoleCommand(new RunJobs());
 	}
 }

@@ -7,16 +7,6 @@ class Manager extends XFCP_Manager
 {
 	use LoggerTrait;
 
-	protected $allowCron = false;
-
-	public function setAllowCron($value)
-	{
-		/**
-		 * Set this to true to allow cron tasks to be included in getRunnable
-		 */
-		$this->allowCron = $value;
-	}
-
 	public function runQueue($manual, $maxRunTime)
 	{
 		$this->logVeryVerbose("Running job queue", ['maxRunTime' => $maxRunTime]);
@@ -26,54 +16,18 @@ class Manager extends XFCP_Manager
 
 	public function getRunnable($manual)
 	{
-		if ($manual || (!empty($this->app->options()->jobRunTrigger) && $this->app->options()->jobRunTrigger == 'activity'))
+		$runnable = parent::getRunnable($manual);
+
+		if (empty($runnable))
 		{
-			return parent::getRunnable($manual);
+			$this->logVeryVerbose("getRunnable: No runnable jobs found");
+		}
+		else
+		{
+			$this->logVeryVerbose("getRunnable: Getting list of runnable jobs", array_slice($runnable, 0, 25));
 		}
 
-		// Make sure Crons only run if we're running from CLI job runner
-		if ($this->allowCron)
-		{
-			$runnable = parent::getRunnable($manual);
-
-			if (empty($runnable))
-			{
-				$this->logVeryVerbose("getRunnable: No runnable jobs found");
-			}
-			else
-			{
-				$this->logVeryVerbose("getRunnable: Getting list of runnable jobs", array_slice($runnable, 0, 25));
-			}
-
-			return $runnable;
-		}
-
-        if (\XF::$versionId >= 2030000) { // XF 2.3+
-
-            // XF 2.3 adds priority to job queue
-            return $this->db->fetchAll("
-                SELECT *
-                FROM xf_job
-                WHERE trigger_date <= ?
-                    AND manual_execute = ?
-                    AND unique_key != 'cron'
-                ORDER BY priority DESC, trigger_date ASC
-                LIMIT 1000
-            ", [\XF::$time, $manual ? 1 : 0]);
-        }
-        else // XF 2.2
-        {
-            // get Runnable jobs excluding cron jobs
-            return $this->db->fetchAll("
-                SELECT *
-                FROM xf_job
-                WHERE trigger_date <= ?
-                    AND manual_execute = ?
-                    AND unique_key != 'cron'
-                ORDER BY trigger_date
-                LIMIT 1000
-            ", [\XF::$time, $manual ? 1 : 0]);
-        }
+		return $runnable;
 	}
 
 	public function queuePending($manual)

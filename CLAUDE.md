@@ -29,18 +29,19 @@ The pieces are spread across files that never reference each other directly, so 
 
 - **`hg:run-jobs` boots its own app class.** `Cli/Command/RunJobs` implements
   `CustomAppCommandInterface`, so XenForo starts `Hampel\JobRunner\App` instead of `XF\Cli\App`.
-  That class pushes `job.runTime` 30 minutes into the future, so nothing ever triggers jobs
-  automatically, and registers `cli.output` (null until the command sets it) and `cli.logger`.
+  That class registers `cli.output` (null until the command sets it) and `cli.logger`, and
+  nothing else — until 2.2.0 it also pushed `job.runTime` 30 minutes ahead, which only ever
+  mattered under activity triggering.
 - **The other `hg:*` commands run under the stock CLI app, so `cli.logger` does not exist there**
   and every log call in the extensions is a silent no-op. That is by design: `LoggerTrait` and
   `TestJob::log()` both check for the logger before using it. Keep that check in anything new.
 - **`Listener::appCliSetup` registers `job.hg.runner`** — the `SubContainer\JobRunner`, which owns
   the lock and the 600-second runtime ceiling. It exists only on CLI requests.
-- **Cron entries are fenced off unless the runner lets them in.** `XF\Job\Manager::getRunnable()`
-  excludes the job with `unique_key = 'cron'` unless `setAllowCron(true)` has been called, and only
-  `hg:run-jobs` calls it. So with server-based triggering, cron tasks run through this command and
-  nowhere else. The exclusion is raw SQL with **two branches, 2.2 and 2.3**, because 2.3 added
-  `priority` ordering to the job queue; a change to one almost certainly belongs in both.
+- **The add-on does not change which jobs run, and must not start again.** Every `Manager`
+  override calls the parent and only adds logging, so the `cron` job is runnable from any runner,
+  XenForo's own `xf:run-jobs` included. Until 2.2.0 `getRunnable()` held the `cron` job back
+  unless `hg:run-jobs` let it in, which silently stopped `xf:run-jobs` running scheduled tasks on
+  any forum with the add-on installed. `JobManagerTest` pins it.
 - **Do not override `Manager::updateNextRunTime()`.** Core writes the next due time to the
   `autoJobRun` registry entry after every job and on every enqueue, and the admin index's
   `hasStoppedJobs()` check reads it. Until 2.1.4 the add-on skipped that write under server
@@ -75,9 +76,8 @@ methods of those names cannot use it.
 original without this copy noticing. The add-on's lines are marked `// JobRunner addon`, which is
 what makes a diff against core readable.
 
-**It is one of two.** `Manager::getRunnable()` repeats core's query with the cron job excluded,
-once per XenForo line. Diff both against each new XenForo release. The logging `run()` does per
-entry needs a hook inside core's loop, and there is none, so the copy is the only way to do it.
+**It is the only copy of core left.** Diff it against each new XenForo release.
+`Manager::getRunnable()` repeated core's query until 2.2.0 and now calls the parent.
 
 `CalculateNextRun::updateCronRunTimeAtomic()` was a third copy until 2.1.3 and now calls the
 parent, reading `next_run` back only when it will be logged. **Keep new overrides that shape** —

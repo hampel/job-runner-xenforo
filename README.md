@@ -22,16 +22,17 @@ nothing until you do.**
 
 1. In the admin control panel, open the **System and performance** options, turn on **Show
    advanced options**, and set **Job run trigger** to **Server based trigger**. Under the default
-   activity-based trigger, XenForo runs jobs from page views and this add-on leaves the queue
-   alone.
+   activity-based trigger, XenForo runs jobs from page views and needs no cron entry.
 2. Add a cron entry for the user your web server runs PHP as, running the job runner every minute:
 
    ```text
    * * * * * php /path/to/xenforo/cmd.php hg:run-jobs
    ```
 
-Cron tasks run only from `hg:run-jobs`, never from a page view, so if the cron entry stops, so do
-XenForo's scheduled tasks. `hg:show-crons` shows when each is next due.
+Under server-based triggering nothing runs from page views, so if the cron entry stops, so do
+XenForo's scheduled tasks. `hg:show-crons` shows when each is next due. XenForo's own
+`xf:run-jobs` also runs everything, cron tasks included, with the add-on installed —
+`hg:run-jobs` adds the lock and the logging.
 
 ## Commands
 

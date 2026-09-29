@@ -10,7 +10,7 @@ needs a person with a forum and a crontab.
 | extends | with | why |
 |---|---|---|
 | `XF\Job\Cron` | `Hampel\JobRunner\XF\Job\Cron` | replaces `run()` wholesale to log each cron entry and its timing |
-| `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | keeps the cron job out of the queue unless `hg:run-jobs` lets it in; logs each job |
+| `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | logs the runnable jobs and each job's timing; changes nothing about which jobs run |
 | `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | logs each claimed entry and the next one due |
 
 All three register on their XenForo 2.2 class names, which 2.3 resolves through its aliases.
@@ -39,10 +39,11 @@ All three register on their XenForo 2.2 class names, which 2.3 resolves through 
 
 ## Fragile points
 
-- **Two methods are copies of XenForo's, not wrappers**, and a XenForo release can change the
-  original without the copy noticing: `Cron::run()`, and the query in `Manager::getRunnable()`,
-  which has one branch per XenForo line because 2.3 added priority ordering. Diff both against the
-  new release's core before declaring it supported.
+- **`Cron::run()` is a copy of XenForo's, not a wrapper**, and a XenForo release can change the
+  original without the copy noticing. Diff it against the new release's core before declaring it
+  supported.
+- **The add-on must not change which jobs run.** Until 2.2.0 it held the `cron` job back for
+  `hg:run-jobs`, which stopped XenForo's own `xf:run-jobs` running scheduled tasks.
 - **The catch around each cron callback must be `\Throwable`.** On XenForo 2.3 an `Error` escaping
   `Cron::run()` fails the job, and core then removes the cron job from the queue until a cron entry
   is next saved — every scheduled task on the forum stops. On 2.2 the `Error` escapes `hg:run-jobs`
@@ -87,10 +88,11 @@ The regression tests for the 2.1.3 fixes were each confirmed to fail with their 
   once by hand with `-vv` and read the log.
 - **Two runners at once.** Start `hg:run-jobs -t 55` in two terminals: the second must print
   `JobRunner already running.` and exit 2. The suite covers the lock in one process only.
-- **The custom application class.** `hg:run-jobs` boots `Hampel\JobRunner\App`, which pushes
-  `job.runTime` 30 minutes ahead so no page load triggers jobs. A test cannot boot a second
-  application class; confirm that browsing the forum under server-based triggering does not
-  call `job.php`.
+- **The custom application class.** `hg:run-jobs` boots `Hampel\JobRunner\App`, which registers
+  the logger. A test cannot boot a second application class; confirm `hg:run-jobs -vv` logs each
+  job and cron task.
+- **`xf:run-jobs` alongside the add-on.** On a server-triggered forum with the add-on installed,
+  run XenForo's own `xf:run-jobs` and confirm cron tasks run (`hg:show-crons` next-run times move).
 - **Upgrade from the last published release** on XenForo 2.2 and 2.3, in a throwaway install. Then
   run the job queue and check the server error log — the file clean-up runs after the upgrade
   reports success.

@@ -84,8 +84,6 @@ class RunJobs extends Command implements CustomAppCommandInterface
 		$start = microtime(true);
 		$more = false;
 
-		$jobManager->setAllowCron(true);
-
 		try
 		{
 			do

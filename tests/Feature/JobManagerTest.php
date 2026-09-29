@@ -1,6 +1,7 @@
 <?php namespace Tests\Feature;
 
 use Hampel\Testing\Concerns\UsesDatabaseTransactions;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tests\TestCase;
 
 /**
@@ -46,64 +47,36 @@ class JobManagerTest extends TestCase
 		$this->assertInstanceOf(\Hampel\JobRunner\XF\Job\Manager::class, $this->manager());
 	}
 
-	public function test_the_cron_job_is_held_back_by_default()
+	public function test_the_cron_job_is_runnable_like_any_other_job()
 	{
-		$this->insertJob('cron', 'XF:Cron', 500);
-		$this->insertJob('jrTestJob', 'Hampel\JobRunner:TestJob', 500);
-
-		$this->assertSame(['jrTestJob'], $this->runnableKeys());
-	}
-
-	public function test_the_runner_lets_the_cron_job_through()
-	{
+		// since 2.2.0 the add-on no longer holds the cron job back for hg:run-jobs, so XenForo's own
+		// xf:run-jobs runs cron tasks with the add-on installed
 		$this->insertJob('cron', 'XF:Cron', 500);
 		$this->insertJob('jrTestJob', 'Hampel\JobRunner:TestJob', 600);
-
-		$this->manager()->setAllowCron(true);
 
 		$this->assertSame(['cron', 'jrTestJob'], $this->runnableKeys());
 	}
 
-	public function test_activity_triggering_leaves_the_queue_to_xenforo()
+	public function test_runnable_jobs_are_logged_when_very_verbose()
 	{
-		$this->setOption('jobRunTrigger', 'activity');
-		$this->insertJob('cron', 'XF:Cron', 500);
+		$output = $this->useCliLogger(OutputInterface::VERBOSITY_VERY_VERBOSE);
+		$this->insertJob('jrTestLogged', 'Hampel\JobRunner:TestJob', 500);
 
-		$this->assertSame(['cron'], $this->runnableKeys());
+		$this->manager()->getRunnable(false);
+
+		$log = $output->fetch();
+		$this->assertStringContainsString('getRunnable: Getting list of runnable jobs', $log);
+		$this->assertStringContainsString('jrTestLogged', $log);
 	}
 
-	public function test_manual_jobs_are_left_to_xenforo()
+	public function test_an_empty_queue_is_logged_as_such()
 	{
-		$this->insertJob('jrTestManual', 'Hampel\JobRunner:TestJob', 500, 1);
-		$this->insertJob('jrTestAuto', 'Hampel\JobRunner:TestJob', 500, 0);
+		$output = $this->useCliLogger(OutputInterface::VERBOSITY_VERY_VERBOSE);
 
-		$this->assertSame(['jrTestManual'], $this->runnableKeys(true));
-	}
+		// the forum's own jobs are all due later than the test time
+		$this->manager()->getRunnable(false);
 
-	public function test_jobs_not_yet_due_are_not_runnable()
-	{
-		$this->insertJob('jrTestLater', 'Hampel\JobRunner:TestJob', 5000);
-
-		$this->assertSame([], $this->runnableKeys());
-	}
-
-	public function test_runnable_order_matches_xenforo()
-	{
-		$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 700);
-		$this->insertJob('jrTestEarly', 'Hampel\JobRunner:TestJob', 500);
-
-		if (\XF::$versionId >= 2030000)
-		{
-			// XF 2.3 orders by priority first; the held-back query must too
-			$urgent = $this->insertJob('jrTestUrgent', 'Hampel\JobRunner:TestJob', 900);
-			$this->app()->db()->update('xf_job', ['priority' => 500], 'job_id = ?', $urgent);
-
-			$this->assertSame(['jrTestUrgent', 'jrTestEarly', 'jrTestLate'], $this->runnableKeys());
-		}
-		else
-		{
-			$this->assertSame(['jrTestEarly', 'jrTestLate'], $this->runnableKeys());
-		}
+		$this->assertStringContainsString('getRunnable: No runnable jobs found', $output->fetch());
 	}
 
 	public function test_server_triggering_still_records_the_next_run_time()
