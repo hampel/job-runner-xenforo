@@ -10,7 +10,7 @@ needs a person with a forum and a crontab.
 | extends | with | why |
 |---|---|---|
 | `XF\Job\Cron` | `Hampel\JobRunner\XF\Job\Cron` | replaces `run()` wholesale to log each cron entry and its timing |
-| `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | keeps the cron job out of the queue unless `hg:run-jobs` lets it in; skips the next-run-time calculation; logs each job |
+| `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | keeps the cron job out of the queue unless `hg:run-jobs` lets it in; logs each job |
 | `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | logs each claimed entry and the next one due |
 
 All three register on their XenForo 2.2 class names, which 2.3 resolves through its aliases.

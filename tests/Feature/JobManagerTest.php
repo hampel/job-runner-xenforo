@@ -106,14 +106,44 @@ class JobManagerTest extends TestCase
 		}
 	}
 
-	public function test_server_triggering_skips_the_next_run_time_calculation()
+	public function test_server_triggering_still_records_the_next_run_time()
 	{
 		$this->fakesRegistry();
-		$before = $this->app()->registry()->get('autoJobRun');
 		$this->insertJob('jrTestNext', 'Hampel\JobRunner:TestJob', 700);
 
-		$this->assertSame(1000, $this->manager()->updateNextRunTime());
-		$this->assertSame($before, $this->app()->registry()->get('autoJobRun'));
+		// the admin control panel's "scheduled jobs outstanding" check reads this - left stale, it
+		// reports stopped jobs whenever one is due
+		$this->assertSame(700, intval($this->manager()->updateNextRunTime()));
+		$this->assertSame(700, intval($this->app()->registry()->get('autoJobRun')));
+	}
+
+	/**
+	 * What the admin index's "scheduled jobs outstanding" check reports on the next request, which
+	 * builds job.runTime fresh from the autoJobRun registry entry.
+	 */
+	protected function adminSeesStoppedJobs(): bool
+	{
+		$this->app()->container()['job.runTime'] = $this->app()->registry()->get('autoJobRun');
+
+		return $this->manager()->hasStoppedJobs();
+	}
+
+	public function test_a_healthy_queue_is_not_reported_as_stopped()
+	{
+		$this->fakesRegistry();
+
+		// a next-run time recorded long ago, as the add-on used to leave it under server triggering
+		$this->app()->registry()->set('autoJobRun', 500);
+		$this->setTestTime(10000);
+		$this->insertJob('jrTestDue', 'Hampel\JobRunner:TestJob', 10000);
+
+		// the precondition: with the stale time, a due job is reported as stopped
+		$this->assertTrue($this->adminSeesStoppedJobs());
+
+		// a job queued or run records the new next-run time, as it does in core
+		$this->manager()->updateNextRunTime();
+
+		$this->assertFalse($this->adminSeesStoppedJobs());
 	}
 
 	public function test_activity_triggering_leaves_the_next_run_time_to_xenforo()

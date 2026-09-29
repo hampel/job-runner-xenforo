@@ -41,8 +41,11 @@ The pieces are spread across files that never reference each other directly, so 
   `hg:run-jobs` calls it. So with server-based triggering, cron tasks run through this command and
   nowhere else. The exclusion is raw SQL with **two branches, 2.2 and 2.3**, because 2.3 added
   `priority` ordering to the job queue; a change to one almost certainly belongs in both.
-- **`Manager::updateNextRunTime()` returns `\XF::$time` without querying**, to avoid the
-  `autoJobRun` registry write core does after every queue run.
+- **Do not override `Manager::updateNextRunTime()`.** Core writes the next due time to the
+  `autoJobRun` registry entry after every job and on every enqueue, and the admin index's
+  `hasStoppedJobs()` check reads it. Until 2.1.4 the add-on skipped that write under server
+  triggering, the registry went stale, and admins saw "There are scheduled jobs outstanding which
+  have not run" whenever a job happened to be due. `JobManagerTest` pins it.
 
 ### The lock
 

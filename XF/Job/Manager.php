@@ -109,25 +109,4 @@ class Manager extends XFCP_Manager
 
 		return $jobResult;
 	}
-
-	/**
-	 * Over-ride default functionality for setting autoJobRun to avoid database queries
-	 */
-	public function updateNextRunTime()
-	{
-		$this->debug("updateNextRunTime");
-
-		if (!empty($this->app->options()->jobRunTrigger) && $this->app->options()->jobRunTrigger == 'activity')
-		{
-			return parent::updateNextRunTime();
-		}
-
-		/**
-		 * if we're doing server based job triggers - just return the current time
-		 *
-		 * we want this to be a valid response so things don't fall over unexpectedly, but we don't want to do any
-		 * database queries
-		 */
-		return \XF::$time;
-	}
 }
