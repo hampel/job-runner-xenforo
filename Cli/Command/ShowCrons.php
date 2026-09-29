@@ -12,7 +12,6 @@ class ShowCrons extends Command
 	{
 		$this
 			->setName('job-monitor:show-crons')
-			->setAliases(['hg:show-crons'])
 			->setDescription('Shows cron tasks and when each is next due.')
 			->addOption(
 				'all',

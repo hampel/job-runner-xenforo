@@ -11,7 +11,6 @@ class QueueTestJob extends Command
 	{
 		$this
 			->setName('job-monitor:queue-test-job')
-			->setAliases(['hg:test-jobs'])
 			->setDescription('Queues a job that sends one test email to the given address.')
 			->addArgument(
 				'email',

@@ -12,7 +12,6 @@ class ShowJobs extends Command
 	{
 		$this
 			->setName('job-monitor:show-jobs')
-			->setAliases(['hg:show-jobs'])
 			->setDescription('Shows the jobs waiting in the job queue.')
 			->addOption(
 				'all',

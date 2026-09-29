@@ -30,7 +30,9 @@ under anything but `job-monitor:run-jobs` they add nothing.
 | `job-monitor:queue-test-job <email>` | queues a job that sends one email to that address |
 | `hg:run-jobs` | deprecated: runs XenForo's `xf:run-jobs` with the same options, for pre-3.0.0 crontabs |
 
-The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x line.
+The other `hg:` names — `hg:show-jobs`, `hg:show-crons`, `hg:run-cron`, `hg:test-jobs` — are hidden
+commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They do not appear in
+`list`.
 
 ### Everything else
 

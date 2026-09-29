@@ -39,8 +39,13 @@ when the new code runs before `Setup` has created it.
 **`hg:run-jobs` is a compatibility shim, not a command of the add-on's own.** Before 3.0.0 the
 add-on *was* the runner and people put `hg:run-jobs` in their crontab, so it survives as a wrapper
 that runs `xf:run-jobs` with the same options. **It must stay silent** — cron mails any output — and
-records its use in the simpleCache instead, which `job-monitor:health-check` reports. The other
-`hg:` names are Symfony aliases of the `job-monitor:` commands, for the 3.x line only.
+records its use in the simpleCache instead, which `job-monitor:health-check` reports.
+
+**The other `hg:` names are hidden subclasses in `Cli/Command/Legacy/`, not Symfony aliases**, for
+the 3.x line only. `list` prints a command's aliases in front of its description, so as aliases
+the old names cluttered every new command's line; a hidden command still runs but is never
+listed. `LegacyCommandsTest` pins both halves. Remove the four classes, and `hg:run-jobs`, at the
+next major version.
 
 ## How a run is wired together
 
