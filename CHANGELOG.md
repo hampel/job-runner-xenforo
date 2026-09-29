@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.0.0 (2026-09-29)
+
+Renamed from **CLI Job Runner** to **Job & Cron Monitor**. The add-on no longer runs your jobs:
+XenForo's own `xf:run-jobs` does, and this add-on is for watching and diagnosing it. See
+"Upgrading from 2.x" in the README.
+
+* **change your crontab from `hg:run-jobs` to `xf:run-jobs`.** `hg:run-jobs` still works - it now
+  runs `xf:run-jobs` with the same options and prints nothing of its own - but will be removed in a
+  later major version. `--reset` is accepted and ignored
+* commands renamed: `job-monitor:run-jobs`, `job-monitor:show-jobs`, `job-monitor:show-crons`,
+  `job-monitor:run-cron` and `job-monitor:queue-test-job`. The old `hg:` names still work in 3.x
+* `job-monitor:run-jobs` logs each job and cron task without `-v`; `--max-execution-time=0` runs
+  until the queue is empty
+* new: `job-monitor:health-check` checks that jobs and cron are running - the cron job queued,
+  overdue jobs and cron tasks, failed jobs, and an old crontab still calling `hg:run-jobs`. Exits 0,
+  1 or 2; `--fix` re-queues a missing cron job; `--json` for monitoring
+* new: on XenForo 2.3 every failed job is recorded, not only in debug mode, and
+  `job-monitor:show-failed-jobs` lists them
+* new: every job and cron task run is timed and kept hour by hour for 90 days;
+  `job-monitor:show-stats` shows the busiest, slowest or one task's history
+* new: a daily cron task prunes failed jobs after 30 days and statistics after 90
+* XenForo's own `xf:run-jobs` now runs cron tasks with the add-on installed - the add-on used to
+  hold them back for its own runner
+* the lock is gone: XenForo already stops two runners running the same job. The old lock file is
+  deleted on upgrade
+* on XenForo 2.2, a cron task throwing an `Error` now ends that run, as it does in XenForo itself;
+  the other due tasks run on the next pass
+
 ## 2.1.4 (2026-09-29)
 
 * bugfix: under server-based job triggering, the admin control panel no longer reports "There are
