@@ -1,8 +1,11 @@
-# CLI Job Runner for XenForo
+# Job & Cron Monitor for XenForo
 
-Runs XenForo's job queue and cron tasks from Unix cron instead of from page views, with detailed
-logging of every job and cron task it runs. A replacement for the core `xf:run-jobs` command that
-can run for up to ten minutes at a time, and never lets two runs overlap.
+Command-line tools for watching, inspecting and diagnosing XenForo's job queue and cron tasks. Run
+the queue by hand and see each job and cron task as it runs, with its execution time; list what is
+queued and when each cron task is next due; run a single cron task on demand.
+
+Cron keeps running XenForo's own `xf:run-jobs`. This add-on is for the person trying to find out
+what it is doing.
 
 By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
@@ -10,80 +13,94 @@ By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
 - XenForo 2.2 or later
 - PHP 7.1 or later
-- Shell access to the server, to add a cron entry
+- Shell access to the server
 
 ## Installation
 
 Install the add-on as usual, from the admin control panel or with
-`php cmd.php xf:addon-install Hampel/JobRunner`. Then set up cron, below — **the add-on changes
-nothing until you do.**
+`php cmd.php xf:addon-install Hampel/JobRunner`. It changes nothing about how jobs run.
 
-## Setting up cron
+## Running jobs from cron
+
+This is XenForo's own setup; the add-on does not need it, but is most useful on a forum that runs
+it.
 
 1. In the admin control panel, open the **System and performance** options, turn on **Show
    advanced options**, and set **Job run trigger** to **Server based trigger**. Under the default
    activity-based trigger, XenForo runs jobs from page views and needs no cron entry.
-2. Add a cron entry for the user your web server runs PHP as, running the job runner every minute:
+2. Add a cron entry for the user your web server runs PHP as, running XenForo's job runner every
+   minute:
 
    ```text
-   * * * * * php /path/to/xenforo/cmd.php hg:run-jobs
+   * * * * * php /path/to/xenforo/cmd.php xf:run-jobs
    ```
 
 Under server-based triggering nothing runs from page views, so if the cron entry stops, so do
-XenForo's scheduled tasks. `hg:show-crons` shows when each is next due. XenForo's own
-`xf:run-jobs` also runs everything, cron tasks included, with the add-on installed —
-`hg:run-jobs` adds the lock and the logging.
+XenForo's scheduled tasks. `job-monitor:show-crons` shows when each is next due.
 
 ## Commands
 
 | command | does |
 |---|---|
-| `hg:run-jobs` | run outstanding jobs and due cron tasks |
-| `hg:run-cron <id>` | run one cron task now, as the scheduler would |
-| `hg:show-jobs` | list the job queue; `--all` for more than 100 |
-| `hg:show-crons` | list cron tasks and when each is next due; `--all` includes inactive ones, `--method` shows each callback, `--sort=id\|addon\|date` |
-| `hg:test-jobs <email>` | queue a job that sends one test email to that address |
+| `job-monitor:run-jobs` | run outstanding jobs and due cron tasks by hand, logging each as it runs |
+| `job-monitor:show-jobs` | list the job queue; `--all` for more than 100 |
+| `job-monitor:show-crons` | list cron tasks and when each is next due; `--all` includes inactive ones, `--method` shows each callback, `--sort=id\|addon\|date` |
+| `job-monitor:run-cron <id>` | run one cron task now, as the scheduler would; `--force` runs a disabled one |
+| `job-monitor:queue-test-job <email>` | queue a job that sends one test email to that address |
 
-`hg:run-jobs` takes:
+`job-monitor:run-jobs` takes:
 
-- `-t`, `--max-execution-time` — how long to keep running jobs, in seconds. Default 55, maximum
-  600.
+- `-t`, `--max-execution-time` — how long to keep running jobs, in seconds. Default 55; `0` runs
+  until the queue is empty.
 - `--manual-only` — run only manually triggered jobs, such as rebuilds started from the admin
-  control panel. Takes no lock, so it can run beside a scheduled run.
-- `--reset` — delete an existing lock first. See below.
+  control panel.
 
-It exits 0 when it has run, 1 when XenForo cannot run jobs at all, and 2 when another run holds the
-lock. `hg:run-cron` exits 1 when the task is not found, has no callback, or throws; `--force` runs
-a disabled task.
+It exits 0 when it has run and 1 when XenForo cannot run jobs at all. `job-monitor:run-cron` exits
+1 when the task is not found, has no callback, or throws.
+
+It is safe to run while cron is running `xf:run-jobs`: XenForo claims each job before running it,
+so the two never run the same job.
 
 ## Logging
 
-Add verbosity to any run to see what it does:
+`job-monitor:run-jobs` shows each job and cron task as it starts and finishes, with its execution
+time, without being asked. Add verbosity for more:
 
-| flag | shows |
+| flag | adds |
 |---|---|
-| `-v` | each job and cron task as it starts and finishes, with its execution time |
-| `-vv` | the context of each — job data, cron entry, next run time — and the queue loop itself |
-| `-vvv` | everything, including the lock and each internal step |
+| `-v` | the context of each — job data, cron entry, next run time — and the queue loop itself |
+| `-vv` | every internal step |
+| `-q` | nothing at all |
 
 ```bash
-php cmd.php hg:run-jobs -vv
+php cmd.php job-monitor:run-jobs -v
 ```
 
-A job of your own can write to the same log while `hg:run-jobs` is running it, through the
+A job of your own can write to the same log while `job-monitor:run-jobs` is running it, through the
 `cli.logger` container key — `Job/TestJob.php` shows how.
 
-## The lock
+## Upgrading from 2.x
 
-`hg:run-jobs` takes a lock at `internal-data://run-jobs-lock.txt` before running anything, so a run
-still going when cron starts the next one is left to finish: the second prints
-`JobRunner already running.` and exits.
+Version 3.0.0 renamed the add-on from **CLI Job Runner** and changed what it is for: it no longer
+runs your cron jobs, XenForo does.
 
-The lock expires 630 seconds after it was taken — the ten-minute maximum plus a margin — and is
-removed when the run ends, including when a job throws. If a run was killed outright and you do not
-want to wait out the expiry, `--reset` removes the lock before starting.
+- **Change your crontab from `hg:run-jobs` to `xf:run-jobs`.** `hg:run-jobs` still works — it now
+  runs `xf:run-jobs` with the same options, so nothing breaks — but it will be removed in a later
+  major version.
+- The other commands have new names. Their old `hg:` names still work in 3.x.
+
+| was | now |
+|---|---|
+| `hg:run-jobs` in cron | `xf:run-jobs` |
+| `hg:run-jobs` by hand | `job-monitor:run-jobs` |
+| `hg:show-jobs` | `job-monitor:show-jobs` |
+| `hg:show-crons` | `job-monitor:show-crons` |
+| `hg:run-cron` | `job-monitor:run-cron` |
+| `hg:test-jobs` | `job-monitor:queue-test-job` |
+
+- There is no lock any more. `--reset` is accepted by `hg:run-jobs` and does nothing.
 
 ## Support
 
-- [CLI Job Runner on xenforo.com](https://xenforo.com/community/resources/cli-job-cron-runner.7931/)
+- [Job & Cron Monitor on xenforo.com](https://xenforo.com/community/resources/cli-job-cron-runner.7931/)
 - [Discussion and support](https://xenforo.com/community/threads/cli-job-cron-runner.183700/)

@@ -1,7 +1,7 @@
 {
     "legacy_addon_id": "DisableRunDeferred",
-    "title": "CLI Job Runner",
-    "description": "Implements an advanced CLI triggered job runner for Unix cron",
+    "title": "Job & Cron Monitor",
+    "description": "Command-line tools to watch, inspect and diagnose the job queue and cron tasks",
     "version_id": 3000011,
     "version_string": "3.0.0a1",
     "dev": "Simon Hampel",

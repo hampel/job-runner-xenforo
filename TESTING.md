@@ -1,4 +1,4 @@
-# Testing CLI Job Runner
+# Testing Job & Cron Monitor
 
 What this add-on touches, what breaks quietly, what the automated suite settles, and what still
 needs a person with a forum and a crontab.
@@ -12,52 +12,51 @@ needs a person with a forum and a crontab.
 | `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | logs the runnable jobs and each job's timing; changes nothing about which jobs run |
 | `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | logs each cron entry as it starts and how long it ran, and the next one due |
 
-Both register on their XenForo 2.2 class names, which 2.3 resolves through its aliases.
-
-### Code event listener
-
-- `app_cli_setup` — `Listener::appCliSetup()` registers the `job.hg.runner` sub-container, which
-  owns the lock and the 600-second runtime ceiling. It exists on CLI requests only.
+Both register on their XenForo 2.2 class names, which 2.3 resolves through its aliases. Both call
+the parent in every method and only add logging, which happens only when `cli.logger` exists — so
+under anything but `job-monitor:run-jobs` they add nothing.
 
 ### Console commands
 
 | command | does |
 |---|---|
-| `hg:run-jobs` | runs the queue under a lock, cron tasks included; boots `Hampel\JobRunner\App` |
-| `hg:run-cron <id>` | runs one cron entry now, as the scheduler would |
-| `hg:show-jobs` | lists the job queue |
-| `hg:show-crons` | lists cron entries and when each is next due |
-| `hg:test-jobs <email>` | queues a job that sends one email to that address |
+| `job-monitor:run-jobs` | runs the queue by hand, logging each job and cron entry; boots `Hampel\JobRunner\App` for the logger |
+| `job-monitor:show-jobs` | lists the job queue |
+| `job-monitor:show-crons` | lists cron entries and when each is next due |
+| `job-monitor:run-cron <id>` | runs one cron entry now, as the scheduler would |
+| `job-monitor:queue-test-job <email>` | queues a job that sends one email to that address |
+| `hg:run-jobs` | deprecated: runs XenForo's `xf:run-jobs` with the same options, for pre-3.0.0 crontabs |
+
+The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x line.
 
 ### Everything else
 
-- A lock file, `internal-data://run-jobs-lock.txt`, holding a Unix expiry time.
-- No options, phrases, templates, routes, permissions or database tables. It changes behaviour
-  only when the forum's **Job run trigger** option is set to server-based; under activity-based
-  triggering every overridden method defers to XenForo.
+- A simpleCache value, `Hampel/JobRunner` / `legacyRunJobsLastUsed`: when `hg:run-jobs` last ran,
+  written at most hourly.
+- `Setup::upgrade()` and `uninstall()` delete `internal-data://run-jobs-lock.txt`, which versions
+  before 3.0.0 could leave behind.
+- No options, phrases, templates, routes, permissions, listeners or database tables.
 
 ## Fragile points
 
 - **Per-entry cron timing depends on how core's `Cron::run()` calls `CalculateNextRun`**: one
   service per pass, `updateCronRunTimeAtomic()` just before each callback, `getMinimumNextRunTime()`
   after the loop. A XenForo release that changes that makes the timings wrong without an error;
-  run `hg:run-jobs -vv` on it and read them.
-- **The add-on must not change which jobs run.** Until 2.2.0 it held the `cron` job back for
-  `hg:run-jobs`, which stopped XenForo's own `xf:run-jobs` running scheduled tasks.
+  run `job-monitor:run-jobs` on it and read them.
+- **The add-on must not change which jobs run.** Until 2.2.0 it held the `cron` job back for its
+  own runner, which stopped XenForo's `xf:run-jobs` running scheduled tasks.
+- **`hg:run-jobs` must stay silent.** Cron mails any output, so anything it printed would arrive
+  as an email every minute. `LegacyRunJobsCommandTest` pins its output to `xf:run-jobs`'s.
 - **An `Error` from a cron callback is handled by XenForo, differently per line.** 2.3 logs it and
-  runs the rest of the pass; 2.2 catches only `\Exception`, so the `Error` ends that
-  `hg:run-jobs` run and the other due entries wait for the next pass.
-- **`hg:run-jobs` must release its lock in a `finally`.** Any exception out of the queue otherwise
-  leaves the lock for its full 630 seconds, and every run in that window reports
-  `JobRunner already running.` instead of the failure.
-- **The lock's expiry is derived from the runtime ceiling:** 600 seconds, plus 30. Change one
-  without the other and two runners can overlap.
+  runs the rest of the pass; 2.2 catches only `\Exception`, so the `Error` ends that run and the
+  other due entries wait for the next pass.
 - **Upgrading on XenForo 2.3 queues XenForo's file clean-up**, which deletes every file in the
   add-on's directory that the release's `hashes.json` does not list. Harmless on an installed copy;
-  never upgrade from a release zip over a development checkout.
+  never upgrade from a release zip over a development checkout. On 2.2 there is no clean-up, so
+  files 3.0.0 removed stay on disk, unreferenced.
 - **An upgrade can start from the XenForo 1 add-on `DisableRunDeferred`**, through
-  `legacy_addon_id`. `Setup.php` has no upgrade steps, so nothing is converted, but that path has
-  not been exercised.
+  `legacy_addon_id`. `Setup::upgrade()` converts nothing — it only deletes the old lock file — but
+  that path has not been exercised.
 
 ## Automated
 
@@ -70,32 +69,30 @@ vendor/bin/phpunit --order-by=random     # the suite must not depend on test ord
 vendor/bin/phpunit --order-by=reverse
 ```
 
-It covers both extensions, all five commands, the logger, the lock, the listener, the test
+It covers both extensions, every command including the `hg:run-jobs` shim, the logger, the test
 job and `Setup`. Cron entries and jobs are inserted inside a rolled-back transaction, with the test
-clock far in the past so only those rows are due; mail, the job queue, the error log and the
-registry are faked; `hg:run-jobs` runs against a mocked job manager. **Nothing on the forum runs or
-changes.** A run leaves the error log, the job queue and the registry exactly as it found them —
-worth confirming by counting them either side when the suite changes.
+clock far in the past so only those rows are due; mail, the job queue, the error log, the registry
+and the simpleCache are faked; the run commands run against a mocked job manager. **Nothing on the
+forum runs or changes.** A run leaves the error log, the job queue and the registry exactly as it
+found them — worth confirming by counting them either side when the suite changes.
 
-The regression tests for the 2.1.3 fixes were each confirmed to fail with their fix reverted.
+Each regression test for a fix since 2.1.3 was confirmed to fail with its fix reverted.
 
 ## Needs a human
 
-- **Real cron on a real forum.** Set **Job run trigger** to server-based, add
-  `* * * * * php /path/to/cmd.php hg:run-jobs` to the web user's crontab, and confirm over a few
-  minutes that queued jobs complete and cron entries' next-run times advance (`hg:show-crons`). Run
-  once by hand with `-vv` and read the log.
-- **Two runners at once.** Start `hg:run-jobs -t 55` in two terminals: the second must print
-  `JobRunner already running.` and exit 2. The suite covers the lock in one process only.
-- **The custom application class.** `hg:run-jobs` boots `Hampel\JobRunner\App`, which registers
-  the logger. A test cannot boot a second application class; confirm `hg:run-jobs -vv` logs each
-  job and cron task.
-- **`xf:run-jobs` alongside the add-on.** On a server-triggered forum with the add-on installed,
-  run XenForo's own `xf:run-jobs` and confirm cron tasks run (`hg:show-crons` next-run times move).
+- **Real cron on a real forum.** Set **Job run trigger** to server-based, put
+  `* * * * * php /path/to/cmd.php xf:run-jobs` in the web user's crontab, and confirm over a few
+  minutes that queued jobs complete and cron entries' next-run times advance
+  (`job-monitor:show-crons`).
+- **An old crontab.** Leave `hg:run-jobs` in a crontab for a few minutes: jobs and cron must run,
+  and cron must mail nothing new.
+- **The custom application class.** `job-monitor:run-jobs` boots `Hampel\JobRunner\App`, which
+  registers the logger. A test cannot boot a second application class; run it by hand and confirm
+  it logs each job and cron entry with no flags.
 - **Upgrade from the last published release** on XenForo 2.2 and 2.3, in a throwaway install. Then
   run the job queue and check the server error log — the file clean-up runs after the upgrade
   reports success.
 - **The PHP floor.** The suite needs PHP 8.3 for its own tooling; the add-on promises 7.1. Run
-  `hg:run-jobs -vv` once on the oldest PHP a supported XenForo install allows.
-- **`hg:test-jobs` sends a real email** through the forum's mail transport. Use an address you
-  control, on a forum whose mail goes somewhere safe.
+  `job-monitor:run-jobs` once on the oldest PHP a supported XenForo install allows.
+- **`job-monitor:queue-test-job` sends a real email** through the forum's mail transport. Use an
+  address you control, on a forum whose mail goes somewhere safe.

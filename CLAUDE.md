@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Scope
 
-This is one XenForo add-on — `Hampel/JobRunner`, "CLI Job Runner". It sits at
+This is one XenForo add-on — `Hampel/JobRunner`, "Job & Cron Monitor" (titled "CLI Job Runner"
+before 3.0.0; the id kept its old name so existing installs upgrade). It sits at
 `src/addons/Hampel/JobRunner/` inside a XenForo install and is its own git repository; the install
 around it is not, and any sibling add-ons beside it are other repositories.
 
@@ -14,57 +15,60 @@ This file covers only what is specific to this add-on.
 
 ## What this add-on is
 
-**A replacement for core's `xf:run-jobs`, meant to be driven by Unix cron, with verbosity-graded
-logging of every job and cron entry it runs.** Its commands are `hg:run-jobs` (the runner),
-`hg:run-cron <id>` (one cron entry, on demand), `hg:show-jobs`, `hg:show-crons`, and
-`hg:test-jobs <email>`. There are no options, templates, phrases or routes — `_output/` holds only
-two class extensions and one `app_cli_setup` listener.
+**Command-line tools for watching and diagnosing the job queue and cron — not a job runner.** Cron
+runs XenForo's own `xf:run-jobs`; this add-on is what a person runs by hand to see what it is doing.
+Its commands are `job-monitor:run-jobs` (run the queue and log each job and cron entry),
+`job-monitor:show-jobs`, `job-monitor:show-crons`, `job-monitor:run-cron <id>` and
+`job-monitor:queue-test-job <email>`. There are no options, templates, phrases, routes or listeners
+— `_output/` holds only two class extensions.
 
-**It only does anything when the forum's job trigger is set to server-based.** With XenForo's
-`jobRunTrigger` option at `activity`, every overridden method falls straight through to the parent.
+**`hg:run-jobs` is a compatibility shim, not a command of the add-on's own.** Before 3.0.0 the
+add-on *was* the runner and people put `hg:run-jobs` in their crontab, so it survives as a wrapper
+that runs `xf:run-jobs` with the same options. **It must stay silent** — cron mails any output — and
+records its use in the simpleCache instead, for a future health check to report. The other `hg:`
+names are Symfony aliases of the `job-monitor:` commands, for the 3.x line only.
 
 ## How a run is wired together
 
 The pieces are spread across files that never reference each other directly, so this is the map.
 
-- **`hg:run-jobs` boots its own app class.** `Cli/Command/RunJobs` implements
+- **`job-monitor:run-jobs` boots its own app class.** `Cli/Command/RunJobs` implements
   `CustomAppCommandInterface`, so XenForo starts `Hampel\JobRunner\App` instead of `XF\Cli\App`.
-  That class registers `cli.output` (null until the command sets it) and `cli.logger`, and
-  nothing else — until 2.2.0 it also pushed `job.runTime` 30 minutes ahead, which only ever
-  mattered under activity triggering.
-- **The other `hg:*` commands run under the stock CLI app, so `cli.logger` does not exist there**
-  and every log call in the extensions is a silent no-op. That is by design: `LoggerTrait` and
-  `TestJob::log()` both check for the logger before using it. Keep that check in anything new.
-- **`Listener::appCliSetup` registers `job.hg.runner`** — the `SubContainer\JobRunner`, which owns
-  the lock and the 600-second runtime ceiling. It exists only on CLI requests.
+  That class registers `cli.output` (null until the command sets it) and `cli.logger`, and nothing
+  else.
+- **Every other command runs under the stock CLI app, so `cli.logger` does not exist there** and
+  every log call in the extensions is a silent no-op. That is what keeps `xf:run-jobs`, and so cron,
+  exactly core's behaviour. `LoggerTrait` and `TestJob::log()` both check for the logger before
+  using it; keep that check in anything new.
 - **The add-on does not change which jobs run, and must not start again.** Every `Manager`
-  override calls the parent and only adds logging, so the `cron` job is runnable from any runner,
-  XenForo's own `xf:run-jobs` included. Until 2.2.0 `getRunnable()` held the `cron` job back
-  unless `hg:run-jobs` let it in, which silently stopped `xf:run-jobs` running scheduled tasks on
-  any forum with the add-on installed. `JobManagerTest` pins it.
+  override calls the parent and only adds logging, so the `cron` job is runnable from any runner.
+  Until 2.2.0 `getRunnable()` held the `cron` job back for the add-on's own runner, which silently
+  stopped `xf:run-jobs` running scheduled tasks on any forum with the add-on installed.
+  `JobManagerTest` pins it.
 - **Do not override `Manager::updateNextRunTime()`.** Core writes the next due time to the
   `autoJobRun` registry entry after every job and on every enqueue, and the admin index's
   `hasStoppedJobs()` check reads it. Until 2.1.4 the add-on skipped that write under server
   triggering, the registry went stale, and admins saw "There are scheduled jobs outstanding which
   have not run" whenever a job happened to be due. `JobManagerTest` pins it.
-
-### The lock
-
-`internal-data://run-jobs-lock.txt` holds a Unix expiry time of **start + 600 + 30 seconds**. A
-second `hg:run-jobs` that finds an unexpired lock exits with code 2; `--reset` deletes the lock
-first, for a runner that crashed without removing it. `--manual-only` takes no lock at all.
-
-**`--max-execution-time` is capped at 600**, the `runtime.limit` that
-`JobRunner::getMaxQueueRunTime()` clamps to — and the lock expiry is derived from the same value.
-Raise one without the other and two runners can overlap.
+- **There is no lock.** Versions before 3.0.0 locked their runner with
+  `internal-data://run-jobs-lock.txt`; it only ever guarded that runner against itself, and XenForo
+  already claims each job atomically, so running `job-monitor:run-jobs` beside cron's `xf:run-jobs`
+  is safe. `Setup` deletes the old file on upgrade and uninstall.
 
 ### Logging verbosity
 
-| flag | adds |
-|---|---|
-| `-v` | job start and completion with timings, each cron entry executed |
-| `-vv` | the queue loop, the JSON context on every line, runnable job lists, next cron entry |
-| `-vvv` | method-entry `debug()` lines and the `extra` payload, including lock writes |
+`job-monitor:run-jobs` raises the requested verbosity one level before logging, so the log shows
+without asking. In the logger's own terms:
+
+| requested | logger sees | adds |
+|---|---|---|
+| none | `-v` | job start and completion with timings, each cron entry executed |
+| `-v` | `-vv` | the queue loop, the JSON context on every line, runnable job lists, next cron entry |
+| `-vv` | `-vvv` | method-entry `debug()` lines and the `extra` payload |
+
+**`Cli\Logger::log()` prints nothing below verbose**, so `logQuiet()` and `logNormal()` only ever
+appear from `-v` up, whatever their names say. Every command that logs raises verbosity or asks
+for it; a new one that relies on `logNormal()` at default verbosity will print nothing.
 
 `LoggerTrait`'s methods are `private` and named `log()` and `debug()`, so a class that already has
 methods of those names cannot use it.
@@ -88,13 +92,13 @@ method at a different point, the timings go wrong without anything failing —
 
 **An `Error` from a cron callback is core's to handle, and the two lines differ.** XF 2.3's
 `Cron::run()` catches `\Throwable`, so the rest of the pass runs. XF 2.2's catches only
-`\Exception`, so an `Error` ends that `hg:run-jobs` run: the lock is still released, the broken
-entry's next-run time has already moved on, and the other due entries run on the next pass.
+`\Exception`, so an `Error` ends that run, under `xf:run-jobs` and `job-monitor:run-jobs` alike: the
+broken entry's next-run time has already moved on, and the other due entries run on the next pass.
 Accepted in 2.2.0 as the cost of carrying no copy (up to a minute's delay, on 2.2 only).
 
 **`Cli/Command/RunCron` must invoke a callback as core's `Cron::run()` does** — through
-`extendClass()` — or `hg:run-cron` debugs different code from what runs on schedule. It catches
-`\Throwable` on both lines, so it reports an `Error` rather than dying with a PHP fatal.
+`extendClass()` — or `job-monitor:run-cron` debugs different code from what runs on schedule. It
+catches `\Throwable` on both lines, so it reports an `Error` rather than dying with a PHP fatal.
 
 ## Compatibility floors are load-bearing
 
@@ -117,18 +121,18 @@ rather than the working directory, so the relative path works unchanged.
 composer install                                                  # first time; vendor/ is gitignored
 vendor/bin/phpunit                                                # whole suite
 vendor/bin/phpunit --testsuite Unit                               # one suite
-vendor/bin/phpunit --filter LockTest                              # one class
+vendor/bin/phpunit --filter LoggerTest                            # one class
 php ../../../../cmd.php xf-dev:import --addon=Hampel/JobRunner    # after editing _output/
 php ../../../../cmd.php xf-addon:sync-json Hampel/JobRunner       # after editing addon.json
-php ../../../../cmd.php hg:run-jobs -vv                           # exercise the runner
-php ../../../../cmd.php hg:run-jobs --reset                       # clear a stale lock and run
+php ../../../../cmd.php job-monitor:run-jobs -v                   # run the queue and read the log
+php ../../../../cmd.php hg:run-jobs                               # the shim: must print what xf:run-jobs does
 php ../../../../cmd.php xf-addon:build-release Hampel/JobRunner   # release only; writes _releases/
 ```
 
 **Never run `xf-dev:export`.** It writes the database over `_output/`, and omitting `--addon`
 exports every add-on in the install. `xf-addon:build-release` calls the scoped `xf-addon:export`.
 
-**`hg:test-jobs <email>` sends a real email** through the forum's configured mail transport the
+**`job-monitor:queue-test-job <email>` sends a real email** through the forum's configured mail transport the
 next time the queue runs. Point it at an address you control, on an install whose mail goes to a
 sink.
 
@@ -166,8 +170,9 @@ behind; that is expected, not a bump to take.
   own setting passes or fails depending on the forum.
 - **The extensions only log when `cli.logger` exists**, and a test app has none. `useCliLogger()`
   registers one over a `BufferedOutput`; without it the extensions add nothing and core runs alone.
-- **`hg:run-jobs` is tested against a mocked job manager**, so it runs no real jobs; the lock is on
-  a swapped `internal-data`.
+- **Both run commands are tested against a mocked job manager**, so they run no real jobs.
+  `LegacyRunJobsCommandTest` runs the `hg:run-jobs` shim and XenForo's `xf:run-jobs` against the
+  same mock and requires identical output.
 - **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id.
 
 ### A class can be extended in only one test per run
@@ -177,12 +182,11 @@ the framework forgets the extension when that test ends. **A second test extendi
 fails**: the `XFCP_` proxy is a `class_alias()`, which PHP cannot declare twice in one process. A
 second extension test needs a base class of its own.
 
-`LockTest` mocks the logger with exact-argument expectations — **a change to a log message in
-`Util\Lock` is a test change too.** A data provider runs before XenForo boots, so it cannot name
-a Symfony Console constant; `LoggerTest` uses the literal verbosity values.
+A data provider runs before XenForo boots, so it cannot name a Symfony Console constant;
+`LoggerTest` uses the literal verbosity values.
 
 Not covered: `Hampel\JobRunner\App::initializeExtra()`, since a test cannot boot a second
-application class, and two runners contending for the lock in separate processes.
+application class — `RunJobsCommandTest` registers the logger the way it does instead.
 
 ## Build and release
 
