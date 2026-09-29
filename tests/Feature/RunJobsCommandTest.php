@@ -116,14 +116,16 @@ class RunJobsCommandTest extends TestCase
 
 	public function test_manual_only_ignores_the_lock_and_leaves_it_alone()
 	{
-		$this->writeLock(\XF::$time + 300);
+		// computed once: the command calls \XF::updateTime(), so \XF::$time can move during the run
+		$expiry = \XF::$time + 300;
+		$this->writeLock($expiry);
 		$this->jobManager->expects()->queuePending(true)->andReturns(false);
 		$this->jobManager->expects()->runQueue(true, m::type('numeric'))->once();
 
 		$tester = $this->runConsoleCommand(new RunJobs(), ['--manual-only' => true]);
 
 		$this->assertSame(0, $tester->getStatusCode());
-		$this->assertSame(\XF::$time + 300, intval($this->app()->fs()->read($this->lockFile)));
+		$this->assertSame($expiry, intval($this->app()->fs()->read($this->lockFile)));
 	}
 
 	public function test_exits_when_jobs_cannot_run()
