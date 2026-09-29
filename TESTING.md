@@ -45,7 +45,11 @@ All three register on their XenForo 2.2 class names, which 2.3 resolves through 
   added priority ordering. Diff each against the new release's core before declaring it supported.
 - **The catch around each cron callback must be `\Throwable`.** On XenForo 2.3 an `Error` escaping
   `Cron::run()` fails the job, and core then removes the cron job from the queue until a cron entry
-  is next saved — every scheduled task on the forum stops.
+  is next saved — every scheduled task on the forum stops. On 2.2 the `Error` escapes `hg:run-jobs`
+  altogether, skipping the rest of the pass.
+- **`hg:run-jobs` must release its lock in a `finally`.** Any exception out of the queue otherwise
+  leaves the lock for its full 630 seconds, and every run in that window reports
+  `JobRunner already running.` instead of the failure.
 - **The lock's expiry is derived from the runtime ceiling:** 600 seconds, plus 30. Change one
   without the other and two runners can overlap.
 - **Upgrading on XenForo 2.3 queues XenForo's file clean-up**, which deletes every file in the
