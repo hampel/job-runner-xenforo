@@ -9,11 +9,10 @@ needs a person with a forum and a crontab.
 
 | extends | with | why |
 |---|---|---|
-| `XF\Job\Cron` | `Hampel\JobRunner\XF\Job\Cron` | replaces `run()` wholesale to log each cron entry and its timing |
 | `XF\Job\Manager` | `Hampel\JobRunner\XF\Job\Manager` | logs the runnable jobs and each job's timing; changes nothing about which jobs run |
-| `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | logs each claimed entry and the next one due |
+| `XF\Service\CronEntry\CalculateNextRun` | `Hampel\JobRunner\XF\Service\CronEntry\CalculateNextRun` | logs each cron entry as it starts and how long it ran, and the next one due |
 
-All three register on their XenForo 2.2 class names, which 2.3 resolves through its aliases.
+Both register on their XenForo 2.2 class names, which 2.3 resolves through its aliases.
 
 ### Code event listener
 
@@ -39,15 +38,15 @@ All three register on their XenForo 2.2 class names, which 2.3 resolves through 
 
 ## Fragile points
 
-- **`Cron::run()` is a copy of XenForo's, not a wrapper**, and a XenForo release can change the
-  original without the copy noticing. Diff it against the new release's core before declaring it
-  supported.
+- **Per-entry cron timing depends on how core's `Cron::run()` calls `CalculateNextRun`**: one
+  service per pass, `updateCronRunTimeAtomic()` just before each callback, `getMinimumNextRunTime()`
+  after the loop. A XenForo release that changes that makes the timings wrong without an error;
+  run `hg:run-jobs -vv` on it and read them.
 - **The add-on must not change which jobs run.** Until 2.2.0 it held the `cron` job back for
   `hg:run-jobs`, which stopped XenForo's own `xf:run-jobs` running scheduled tasks.
-- **The catch around each cron callback must be `\Throwable`.** On XenForo 2.3 an `Error` escaping
-  `Cron::run()` fails the job, and core then removes the cron job from the queue until a cron entry
-  is next saved — every scheduled task on the forum stops. On 2.2 the `Error` escapes `hg:run-jobs`
-  altogether, skipping the rest of the pass.
+- **An `Error` from a cron callback is handled by XenForo, differently per line.** 2.3 logs it and
+  runs the rest of the pass; 2.2 catches only `\Exception`, so the `Error` ends that
+  `hg:run-jobs` run and the other due entries wait for the next pass.
 - **`hg:run-jobs` must release its lock in a `finally`.** Any exception out of the queue otherwise
   leaves the lock for its full 630 seconds, and every run in that window reports
   `JobRunner already running.` instead of the failure.
@@ -71,7 +70,7 @@ vendor/bin/phpunit --order-by=random     # the suite must not depend on test ord
 vendor/bin/phpunit --order-by=reverse
 ```
 
-It covers the three extensions, all five commands, the logger, the lock, the listener, the test
+It covers both extensions, all five commands, the logger, the lock, the listener, the test
 job and `Setup`. Cron entries and jobs are inserted inside a rolled-back transaction, with the test
 clock far in the past so only those rows are due; mail, the job queue, the error log and the
 registry are faked; `hg:run-jobs` runs against a mocked job manager. **Nothing on the forum runs or

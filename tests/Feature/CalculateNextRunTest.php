@@ -72,4 +72,16 @@ class CalculateNextRunTest extends TestCase
 		$this->assertSame(100, intval($this->service()->getMinimumNextRunTime()));
 		$this->assertStringContainsString('"entry_id":"jrTestSoonest"', $output->fetch());
 	}
+
+	public function test_a_claim_lost_to_another_runner_is_logged_as_skipped()
+	{
+		$output = $this->useCliLogger(OutputInterface::VERBOSITY_VERBOSE);
+		$this->insertCronEntry('jrTestLost', 'record', 100);
+		$entry = $this->entry('jrTestLost');
+
+		$this->service()->updateCronRunTimeAtomic($entry);
+		$this->service()->updateCronRunTimeAtomic($entry);
+
+		$this->assertStringContainsString('Could not update run time for cron [jrTestLost], skipping', $output->fetch());
+	}
 }

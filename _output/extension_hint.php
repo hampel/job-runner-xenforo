@@ -10,7 +10,6 @@
 
 namespace Hampel\JobRunner\XF\Job
 {
-	class XFCP_Cron extends \XF\Job\Cron {}
 	class XFCP_Manager extends \XF\Job\Manager {}
 }
 

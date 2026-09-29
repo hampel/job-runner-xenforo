@@ -18,7 +18,7 @@ This file covers only what is specific to this add-on.
 logging of every job and cron entry it runs.** Its commands are `hg:run-jobs` (the runner),
 `hg:run-cron <id>` (one cron entry, on demand), `hg:show-jobs`, `hg:show-crons`, and
 `hg:test-jobs <email>`. There are no options, templates, phrases or routes — `_output/` holds only
-three class extensions and one `app_cli_setup` listener.
+two class extensions and one `app_cli_setup` listener.
 
 **It only does anything when the forum's job trigger is set to server-based.** With XenForo's
 `jobRunTrigger` option at `activity`, every overridden method falls straight through to the parent.
@@ -69,30 +69,32 @@ Raise one without the other and two runners can overlap.
 `LoggerTrait`'s methods are `private` and named `log()` and `debug()`, so a class that already has
 methods of those names cannot use it.
 
-## `XF/Job/Cron::run()` is a copy of core, not a wrapper
+## Every extension calls the parent — there is no copy of core
 
-**It replaces the parent method wholesale** to interleave logging, and never calls
-`parent::run()` except when no logger is present. Every XenForo upgrade can change the core
-original without this copy noticing. The add-on's lines are marked `// JobRunner addon`, which is
-what makes a diff against core readable.
+**Keep it that way.** Until 2.2.0 the add-on replaced `XF\Job\Cron::run()` wholesale to log each
+cron entry, and the copy drifted: it caught `\Exception` where XF 2.3's core had moved to
+`\Throwable`, so on 2.3 one broken cron task from any add-on made core delete the `cron` job and
+every scheduled task stopped (fixed in 2.1.3). `Manager::getRunnable()` and
+`CalculateNextRun::updateCronRunTimeAtomic()` were copies too. **New overrides call the parent
+first, then add** — never re-implement a core method to get at its internals.
 
-**It is the only copy of core left.** Diff it against each new XenForo release.
-`Manager::getRunnable()` repeated core's query until 2.2.0 and now calls the parent.
+**Per-entry cron logging comes from two points core already calls.** `Cron::run()` builds one
+`CalculateNextRun` service per pass, calls `updateCronRunTimeAtomic()` immediately before each
+entry's callback, and `getMinimumNextRunTime()` once the loop ends. So an entry's time runs from
+its claim to the next claim, or to the end of the pass, and the extension keeps the running entry
+on the service instance. If core ever stops sharing one service across a pass, or calls either
+method at a different point, the timings go wrong without anything failing —
+`CronJobTest::test_each_entry_is_logged_when_verbose` is the check.
 
-`CalculateNextRun::updateCronRunTimeAtomic()` was a third copy until 2.1.3 and now calls the
-parent, reading `next_run` back only when it will be logged. **Keep new overrides that shape** —
-parent first, then add — wherever the extra work does not need the method's internals.
+**An `Error` from a cron callback is core's to handle, and the two lines differ.** XF 2.3's
+`Cron::run()` catches `\Throwable`, so the rest of the pass runs. XF 2.2's catches only
+`\Exception`, so an `Error` ends that `hg:run-jobs` run: the lock is still released, the broken
+entry's next-run time has already moved on, and the other due entries run on the next pass.
+Accepted in 2.2.0 as the cost of carrying no copy (up to a minute's delay, on 2.2 only).
 
-**The catch around each cron callback must stay `\Throwable`.** On XF 2.3 an `Error` escaping
-`run()` fails the job, and core then deletes the `cron` job from the queue and re-creates it only
-when a cron entry is next saved — so one broken cron task from any add-on stops every scheduled
-task on the forum. XF 2.2's core catches only `\Exception`; this copy is deliberately wider.
-
-Remaining drift, checked on 2026-09-28 against XF 2.3: core resolves the service and finder by
-class name rather than short name, which 2.2 cannot do.
-
-**`Cli/Command/RunCron` must invoke a callback exactly as `run()` does** — through `extendClass()`,
-inside a `\Throwable` catch — or `hg:run-cron` debugs different code from what runs on schedule.
+**`Cli/Command/RunCron` must invoke a callback as core's `Cron::run()` does** — through
+`extendClass()` — or `hg:run-cron` debugs different code from what runs on schedule. It catches
+`\Throwable` on both lines, so it reports an `Error` rather than dying with a PHP fatal.
 
 ## Compatibility floors are load-bearing
 
@@ -163,7 +165,7 @@ behind; that is expected, not a bump to take.
   under which every overridden `Manager` method defers to core — so a test relying on the forum's
   own setting passes or fails depending on the forum.
 - **The extensions only log when `cli.logger` exists**, and a test app has none. `useCliLogger()`
-  registers one over a `BufferedOutput`; without it `Cron::run()` defers to core's copy entirely.
+  registers one over a `BufferedOutput`; without it the extensions add nothing and core runs alone.
 - **`hg:run-jobs` is tested against a mocked job manager**, so it runs no real jobs; the lock is on
   a swapped `internal-data`.
 - **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id.

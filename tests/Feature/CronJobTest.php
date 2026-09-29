@@ -7,7 +7,8 @@ use Tests\TestCase;
 use XF\Job\JobResult;
 
 /**
- * XF\Job\Cron as extended by this add-on - the pass that runs every due cron entry.
+ * XF\Job\Cron, the pass that runs every due cron entry - XenForo's own class since 2.2.0, with the
+ * add-on's per-entry logging coming from its CalculateNextRun extension.
  */
 class CronJobTest extends TestCase
 {
@@ -28,12 +29,10 @@ class CronJobTest extends TestCase
 		return $job->run(30);
 	}
 
-	public function test_the_extension_is_applied()
+	public function test_the_cron_job_is_xenforos_own()
 	{
-		$this->assertInstanceOf(
-			\Hampel\JobRunner\XF\Job\Cron::class,
-			$this->app()->job('XF:Cron', null, [])
-		);
+		// no copy of core's run() to drift - see CLAUDE.md
+		$this->assertSame(\XF\Job\Cron::class, get_class($this->app()->job('XF:Cron', null, [])));
 	}
 
 	public function test_due_entries_run_in_next_run_order()
@@ -51,6 +50,11 @@ class CronJobTest extends TestCase
 
 	public function test_an_error_in_one_callback_does_not_stop_the_pass()
 	{
+		if (\XF::$versionId < 2030000)
+		{
+			$this->markTestSkipped('XenForo 2.2 catches only \\Exception around a cron callback.');
+		}
+
 		$this->fakesErrors();
 		$this->useCliLogger();
 		$this->insertCronEntry('jrTestBroken', 'throwError', 100);
@@ -89,12 +93,20 @@ class CronJobTest extends TestCase
 	{
 		$output = $this->useCliLogger(OutputInterface::VERBOSITY_VERBOSE);
 		$this->insertCronEntry('jrTestLogged', 'record', 100);
+		$this->insertCronEntry('jrTestLast', 'record', 200);
 
 		$this->runCronJob();
 
+		// each entry's time runs from its claim to the next claim, or to the end of the pass
 		$log = $output->fetch();
 		$this->assertStringContainsString('Executing cron entry [jrTestLogged]', $log);
 		$this->assertMatchesRegularExpression('/Cron entry \[jrTestLogged\] executed in [0-9.]+ seconds/', $log);
+		$this->assertStringContainsString('Executing cron entry [jrTestLast]', $log);
+		$this->assertMatchesRegularExpression('/Cron entry \[jrTestLast\] executed in [0-9.]+ seconds/', $log);
+		$this->assertLessThan(
+			strpos($log, 'Executing cron entry [jrTestLast]'),
+			strpos($log, 'Cron entry [jrTestLogged] executed in')
+		);
 	}
 
 	public function test_nothing_is_logged_at_normal_verbosity()
