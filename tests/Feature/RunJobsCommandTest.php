@@ -1,27 +1,23 @@
 <?php namespace Tests\Feature;
 
 use Hampel\JobRunner\Cli\Command\RunJobs;
-use Hampel\JobRunner\Listener;
+use Hampel\JobRunner\Cli\Logger;
 use Mockery as m;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tests\TestCase;
 
 /**
- * hg:run-jobs. The job manager is a mock, so these tests cover the command's own logic - the lock,
- * its options, the queue loop - and run no real jobs.
+ * job-monitor:run-jobs, the run-by-hand diagnostic. The job manager is a mock, so these tests cover
+ * the command's own logic and run no real jobs.
  */
 class RunJobsCommandTest extends TestCase
 {
-	protected $lockFile = 'internal-data://run-jobs-lock.txt';
-
 	/** @var \Mockery\MockInterface */
 	protected $jobManager;
 
 	protected function setUp(): void
 	{
 		parent::setUp();
-
-		// the add-on registers its sub-container from app_cli_setup, which a test app never fires
-		Listener::appCliSetup($this->app());
 
 		$this->swapFs('internal-data');
 
@@ -32,14 +28,16 @@ class RunJobsCommandTest extends TestCase
 		$this->swap('job.manager', function () {
 			return $this->jobManager;
 		});
+
+		// what Hampel\JobRunner\App registers - a test cannot boot a second application class
+		$container = $this->app()->container();
+		$container['cli.output'] = null;
+		$container['cli.logger'] = function ($c) {
+			return new Logger($c['cli.output']);
+		};
 	}
 
-	protected function writeLock($expiry)
-	{
-		$this->app()->fs()->write($this->lockFile, $expiry);
-	}
-
-	public function test_runs_the_queue_and_releases_the_lock()
+	public function test_runs_the_queue()
 	{
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->once();
 
@@ -47,7 +45,6 @@ class RunJobsCommandTest extends TestCase
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertStringContainsString('All outstanding jobs have run.', $tester->getDisplay());
-		$this->assertFsHasNot($this->lockFile);
 	}
 
 	public function test_keeps_running_while_jobs_are_pending()
@@ -55,76 +52,46 @@ class RunJobsCommandTest extends TestCase
 		$this->jobManager->expects()->queuePending(false)->andReturns(true, true, false)->times(3);
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->times(3);
 
-		$tester = $this->runConsoleCommand(new RunJobs());
-
-		$this->assertSame(0, $tester->getStatusCode());
+		$this->assertSame(0, $this->runConsoleCommand(new RunJobs())->getStatusCode());
 	}
 
-	public function test_releases_the_lock_when_a_job_throws()
+	public function test_zero_runs_until_the_queue_is_empty()
+	{
+		// with a time limit this many passes would stop early; with 0 it runs them all
+		$this->jobManager->expects()->queuePending(false)->andReturns(true, true, true, true, false)->times(5);
+		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->times(5);
+
+		$tester = $this->runConsoleCommand(new RunJobs(), ['--max-execution-time' => 0]);
+
+		$this->assertStringContainsString('All outstanding jobs have run.', $tester->getDisplay());
+	}
+
+	public function test_a_job_that_throws_propagates()
 	{
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))
 			->andThrows(new \RuntimeException('job exploded'));
 
-		try
-		{
-			$this->runConsoleCommand(new RunJobs());
-			$this->fail('The exception from the job should propagate out of the command.');
-		}
-		catch (\RuntimeException $e)
-		{
-			$this->assertSame('job exploded', $e->getMessage());
-		}
+		$this->expectException(\RuntimeException::class);
+		$this->expectExceptionMessage('job exploded');
 
-		// left in place, the lock would block every run for the next ten minutes
-		$this->assertFsHasNot($this->lockFile);
+		$this->runConsoleCommand(new RunJobs());
 	}
 
-	public function test_refuses_to_run_while_another_runner_holds_the_lock()
+	public function test_takes_no_lock()
 	{
-		$this->writeLock(\XF::$time + 300);
-		$this->jobManager->expects()->runQueue(m::any(), m::any())->never();
-
-		$tester = $this->runConsoleCommand(new RunJobs());
-
-		$this->assertSame(2, $tester->getStatusCode());
-		$this->assertStringContainsString('JobRunner already running.', $tester->getDisplay());
-		$this->assertFsHas($this->lockFile);
-	}
-
-	public function test_takes_over_an_expired_lock()
-	{
-		$this->writeLock(\XF::$time - 1);
 		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->once();
 
-		$tester = $this->runConsoleCommand(new RunJobs());
+		$this->runConsoleCommand(new RunJobs());
 
-		$this->assertSame(0, $tester->getStatusCode());
-		$this->assertFsHasNot($this->lockFile);
+		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
 	}
 
-	public function test_reset_clears_an_unexpired_lock_and_runs()
+	public function test_manual_only_runs_only_manual_jobs()
 	{
-		$this->writeLock(\XF::$time + 300);
-		$this->jobManager->expects()->runQueue(false, m::type('numeric'))->once();
-
-		$tester = $this->runConsoleCommand(new RunJobs(), ['--reset' => true]);
-
-		$this->assertSame(0, $tester->getStatusCode());
-		$this->assertFsHasNot($this->lockFile);
-	}
-
-	public function test_manual_only_ignores_the_lock_and_leaves_it_alone()
-	{
-		// computed once: the command calls \XF::updateTime(), so \XF::$time can move during the run
-		$expiry = \XF::$time + 300;
-		$this->writeLock($expiry);
 		$this->jobManager->expects()->queuePending(true)->andReturns(false);
 		$this->jobManager->expects()->runQueue(true, m::type('numeric'))->once();
 
-		$tester = $this->runConsoleCommand(new RunJobs(), ['--manual-only' => true]);
-
-		$this->assertSame(0, $tester->getStatusCode());
-		$this->assertSame($expiry, intval($this->app()->fs()->read($this->lockFile)));
+		$this->assertSame(0, $this->runConsoleCommand(new RunJobs(), ['--manual-only' => true])->getStatusCode());
 	}
 
 	public function test_exits_when_jobs_cannot_run()
@@ -136,7 +103,6 @@ class RunJobsCommandTest extends TestCase
 
 		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertStringContainsString('Jobs cannot be run at this time.', $tester->getDisplay());
-		$this->assertFsHasNot($this->lockFile);
 	}
 
 	public function test_no_single_run_is_given_more_than_the_configured_job_time()
@@ -147,5 +113,25 @@ class RunJobsCommandTest extends TestCase
 		}))->once();
 
 		$this->runConsoleCommand(new RunJobs(), ['--max-execution-time' => 600]);
+	}
+
+	public function test_logs_without_being_asked()
+	{
+		$this->jobManager->allows()->runQueue(m::any(), m::any());
+
+		// run by hand, the log is the point: normal verbosity shows what -v used to
+		$tester = $this->runConsoleCommand(new RunJobs(), [], ['verbosity' => OutputInterface::VERBOSITY_NORMAL]);
+
+		$this->assertStringContainsString('Run Jobs starting', $tester->getDisplay());
+		$this->assertStringContainsString('Total execution time', $tester->getDisplay());
+	}
+
+	public function test_quiet_stays_quiet()
+	{
+		$this->jobManager->allows()->runQueue(m::any(), m::any());
+
+		$tester = $this->runConsoleCommand(new RunJobs(), [], ['verbosity' => OutputInterface::VERBOSITY_QUIET]);
+
+		$this->assertSame('', $tester->getDisplay());
 	}
 }

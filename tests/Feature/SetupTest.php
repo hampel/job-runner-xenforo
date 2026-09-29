@@ -50,4 +50,33 @@ class SetupTest extends TestCase
 
 		$this->assertNoJobsQueued();
 	}
+
+	public function test_an_upgrade_removes_the_lock_file_older_versions_left()
+	{
+		$this->swapFs('internal-data');
+		$this->app()->fs()->write('internal-data://run-jobs-lock.txt', '1790000000');
+
+		$this->makeSetup()->upgrade();
+
+		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
+	}
+
+	public function test_an_upgrade_with_no_lock_file_is_fine()
+	{
+		$this->swapFs('internal-data');
+
+		$this->makeSetup()->upgrade();
+
+		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
+	}
+
+	public function test_uninstall_removes_the_lock_file_too()
+	{
+		$this->swapFs('internal-data');
+		$this->app()->fs()->write('internal-data://run-jobs-lock.txt', '1790000000');
+
+		$this->makeSetup()->uninstall();
+
+		$this->assertFsHasNot('internal-data://run-jobs-lock.txt');
+	}
 }

@@ -1,13 +1,19 @@
 <?php namespace Hampel\JobRunner\Cli\Command;
 
 use Hampel\JobRunner\Cli\LoggerTrait;
-use Hampel\JobRunner\SubContainer\JobRunner;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use XF\Cli\Command\CustomAppCommandInterface;
 
+/**
+ * Run the job queue by hand and watch it work.
+ *
+ * Runs the same queue as xf:run-jobs, which is what cron should run. This command exists for a
+ * person diagnosing the queue, so it logs by default: each job and cron entry as it runs, with its
+ * execution time. -v adds the context of each, -vv everything.
+ */
 class RunJobs extends Command implements CustomAppCommandInterface
 {
 	use LoggerTrait;
@@ -20,13 +26,13 @@ class RunJobs extends Command implements CustomAppCommandInterface
 	protected function configure()
 	{
 		$this
-			->setName('hg:run-jobs')
-			->setDescription('Runs any outstanding jobs with debug logging support.')
+			->setName('job-monitor:run-jobs')
+			->setDescription('Runs outstanding jobs and due cron tasks by hand, logging each as it runs.')
 			->addOption(
 				'max-execution-time',
 				't',
 				InputOption::VALUE_REQUIRED,
-				'Sets a max execution time in seconds (max: 600)',
+				'Sets a max execution time in seconds. Use 0 to run until all jobs have completed.',
 				55
 			)
 			->addOption(
@@ -34,20 +40,13 @@ class RunJobs extends Command implements CustomAppCommandInterface
 				null,
 				InputOption::VALUE_NONE,
 				'Ensures that only manually triggered jobs are run'
-			)
-			->addOption(
-				'reset',
-				null,
-				InputOption::VALUE_NONE,
-				'Reset lock file before execution'
-		);
+			);
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output)
 	{
 		$app = \XF::app();
 		$jobManager = $app->jobManager();
-		$jobRunner = $this->getJobRunner();
 
 		if (!$jobManager->canRunJobs())
 		{
@@ -55,68 +54,46 @@ class RunJobs extends Command implements CustomAppCommandInterface
 			return 1;
 		}
 
+		$this->raiseVerbosity($output);
 		$app['cli.output'] = $output;
 
 		$maxRunTime = $app->config('jobMaxRunTime'); // maximum time for a single job to execute
-		$maxQueueRunTime = $jobRunner->getMaxQueueRunTime(intval($input->getOption('max-execution-time'))); // maximum time for the job runner to run jobs
+		$maxExecutionTime = max(0, intval($input->getOption('max-execution-time'))); // 0 = until empty
 		$manualOnly = $input->getOption('manual-only');
-		$reset = $input->getOption('reset');
 
-		if (!$manualOnly)
-		{
-			if ($reset && $jobRunner->lockExists())
-			{
-				// manual reset of lock - any other existing job runners will fail when they try to remove the lock
-				$jobRunner->removeLock();
-			}
-
-			if (!$jobRunner->getLock())
-			{
-				// we couldn't get a new lock - abort now
-				$output->writeln('<error>JobRunner already running.</error>');
-				return 2;
-			}
-		}
-
-		$time = time();
-		$this->log("Run Jobs starting", compact('maxRunTime', 'maxQueueRunTime', 'manualOnly', 'time'));
+		$this->log("Run Jobs starting", compact('maxRunTime', 'maxExecutionTime', 'manualOnly'));
 
 		$start = microtime(true);
 		$more = false;
 
-		try
+		do
 		{
-			do
+			$maxThisRun = $maxRunTime;
+
+			if ($maxExecutionTime)
 			{
-				$queueRunTime = microtime(true) - $start; // how long we've been processing jobs
-				$remaining = $maxQueueRunTime - $queueRunTime; // how long we've got left to process jobs
+				$remaining = $maxExecutionTime - (microtime(true) - $start);
 
 				$this->logVeryVerbose(sprintf("Remaining time: %01.2f seconds", $remaining));
 
 				if ($remaining < 1) break; // stop if we're out of time
 
-				$jobManager->runQueue($manualOnly, min($remaining, $maxRunTime));
-
-				// keep the memory limit down on long running jobs
-				$app->em()->clearEntityCache();
-				\XF::updateTime();
-
-				$more = $jobManager->queuePending($manualOnly);
+				$maxThisRun = min($remaining, $maxRunTime);
 			}
-			while ($more);
+
+			$jobManager->runQueue($manualOnly, $maxThisRun);
+
+			// keep the memory limit down on long running jobs
+			$app->em()->clearEntityCache();
+			\XF::updateTime();
+
+			$more = $jobManager->queuePending($manualOnly);
 		}
-		finally
-		{
-			if (!$manualOnly)
-			{
-				// remove the lock now that we're done - even if a job threw, so the next run isn't blocked
-				$jobRunner->removeLock();
-			}
-		}
+		while ($more);
 
 		if ($more)
 		{
-			$output->writeln("<info>Maximum runtime ({$maxQueueRunTime} seconds) expired with more runnable jobs pending.</info>", OutputInterface::VERBOSITY_VERBOSE);
+			$output->writeln("<info>Maximum runtime ({$maxExecutionTime} seconds) expired with more runnable jobs pending.</info>");
 		}
 		else
 		{
@@ -128,10 +105,21 @@ class RunJobs extends Command implements CustomAppCommandInterface
 	}
 
 	/**
-	 * @return JobRunner
+	 * Shift the requested verbosity up one level, so the job and cron log shows without -v. Quiet
+	 * stays quiet.
 	 */
-	protected function getJobRunner()
+	protected function raiseVerbosity(OutputInterface $output)
 	{
-		return \XF::app()->get('job.hg.runner');
+		$raised = [
+			OutputInterface::VERBOSITY_NORMAL => OutputInterface::VERBOSITY_VERBOSE,
+			OutputInterface::VERBOSITY_VERBOSE => OutputInterface::VERBOSITY_VERY_VERBOSE,
+			OutputInterface::VERBOSITY_VERY_VERBOSE => OutputInterface::VERBOSITY_DEBUG,
+		];
+
+		$verbosity = $output->getVerbosity();
+		if (isset($raised[$verbosity]))
+		{
+			$output->setVerbosity($raised[$verbosity]);
+		}
 	}
 }
