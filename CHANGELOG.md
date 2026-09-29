@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.1 (2026-09-29)
+
+* the `job-monitor:` commands are listed without their old `hg:` names beside them. `hg:show-jobs`,
+  `hg:show-crons`, `hg:run-cron` and `hg:test-jobs` still work in 3.x, but no longer appear in
+  `list`
+
 ## 3.0.0 (2026-09-29)
 
 Renamed from **CLI Job Runner** to **Job & Cron Monitor**. The add-on no longer runs your jobs:
