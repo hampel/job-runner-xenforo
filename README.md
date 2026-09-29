@@ -89,6 +89,11 @@ run it as it stands:
 php cmd.php job-monitor:health-check || echo "jobs or cron need attention"
 ```
 
+`--json` prints the same result as one JSON document — the overall `status`, the `exit_code`,
+`checked_at`, `fixed_cron_job` (`true`, `false`, or `null` when no repair was attempted) and each
+check's `check`, `label`, `status` and `detail` — for a monitoring system that reads more than the
+exit code.
+
 ## Failed jobs
 
 On XenForo 2.3, a job that throws and cannot be retried is removed from the queue and — in debug

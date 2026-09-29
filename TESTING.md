@@ -64,8 +64,9 @@ The other `hg:` names are aliases of the `job-monitor:` commands for the 3.x lin
 - **Tests must never call `Setup::install()`, `upgrade()` or `uninstall()`.** They create or drop
   the statistics table, DDL cannot be rolled back, and the test would change the forum's real
   schema. The sandbox upgrade test covers them.
-- **The health check's exit codes are an interface.** 0, 1 and 2 are what monitoring reads;
-  changing their meaning breaks every alert built on them. `HealthCheckTest` pins all three.
+- **The health check's exit codes and `--json` keys are an interface.** 0, 1 and 2, and the JSON
+  document's keys, are what monitoring reads; changing either breaks every alert built on them.
+  `HealthCheckTest` pins both.
 - **`hg:run-jobs` must stay silent.** Cron mails any output, so anything it printed would arrive
   as an email every minute. `LegacyRunJobsCommandTest` pins its output to `xf:run-jobs`'s.
 - **An `Error` from a cron callback is handled by XenForo, differently per line.** 2.3 logs it and

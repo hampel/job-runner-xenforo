@@ -208,4 +208,33 @@ class HealthCheckTest extends TestCase
 		$this->assertStringContainsString('Queued the cron job again.', $tester->getDisplay());
 		$this->assertDatabaseHas('xf_job', ['unique_key' => 'cron']);
 	}
+
+	public function test_json_output_carries_every_check_and_the_exit_code()
+	{
+		$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 100000 - 600);
+
+		$tester = $this->runConsoleCommand(new HealthCheckCommand(), ['--json' => true]);
+		$result = json_decode($tester->getDisplay(), true);
+
+		$this->assertIsArray($result, 'the output must be a single JSON document');
+		$this->assertSame(1, $tester->getStatusCode());
+		$this->assertSame('warning', $result['status']);
+		$this->assertSame(1, $result['exit_code']);
+		$this->assertSame(100000, $result['checked_at']);
+		$this->assertNull($result['fixed_cron_job']);
+		$this->assertCount(8, $result['checks']);
+		$this->assertSame(['check', 'label', 'status', 'detail'], array_keys($result['checks'][0]));
+	}
+
+	public function test_json_output_reports_a_fix()
+	{
+		$this->removeCronJob();
+
+		$tester = $this->runConsoleCommand(new HealthCheckCommand(), ['--json' => true, '--fix' => true]);
+		$result = json_decode($tester->getDisplay(), true);
+
+		$this->assertIsArray($result, 'the fix message must not break the JSON');
+		$this->assertTrue($result['fixed_cron_job']);
+		$this->assertSame(0, $tester->getStatusCode());
+	}
 }

@@ -34,6 +34,12 @@ class HealthCheck extends Command
 				null,
 				InputOption::VALUE_NONE,
 				'Queue the cron job again if it is missing - the only repair this makes'
+			)
+			->addOption(
+				'json',
+				null,
+				InputOption::VALUE_NONE,
+				'Print the result as one JSON document, for monitoring'
 			);
 	}
 
@@ -41,15 +47,36 @@ class HealthCheck extends Command
 	{
 		$health = $this->healthCheck();
 		$results = $health->run();
+		$json = $input->getOption('json');
 
+		// null: no repair was needed or asked for
+		$fixed = null;
 		if ($input->getOption('fix') && $this->hasProblem($results, 'cron_job'))
 		{
 			$fixed = $health->fixCronJob();
-			$output->writeln($fixed
-				? '<info>Queued the cron job again.</info>'
-				: '<error>Could not queue the cron job.</error>');
-
 			$results = $health->run();
+
+			if (!$json)
+			{
+				$output->writeln($fixed
+					? '<info>Queued the cron job again.</info>'
+					: '<error>Could not queue the cron job.</error>');
+			}
+		}
+
+		$status = $health->worstStatus($results);
+
+		if ($json)
+		{
+			$output->writeln(json_encode([
+				'status' => $status,
+				'exit_code' => self::EXIT_CODES[$status],
+				'checked_at' => \XF::$time,
+				'fixed_cron_job' => $fixed,
+				'checks' => $results,
+			], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), OutputInterface::OUTPUT_RAW);
+
+			return self::EXIT_CODES[$status];
 		}
 
 		foreach ($results AS $result)
@@ -61,7 +88,7 @@ class HealthCheck extends Command
 			));
 		}
 
-		return self::EXIT_CODES[$health->worstStatus($results)];
+		return self::EXIT_CODES[$status];
 	}
 
 	protected function hasProblem(array $results, $check)
