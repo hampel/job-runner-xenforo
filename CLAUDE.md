@@ -157,9 +157,9 @@ mail goes to a sink.
 
 ## Tests
 
-The suite is on `hampel/xenforo-test-framework` `^5.13.1` and PHPUnit `^12.0`. The framework boots the
-enclosing XenForo install (`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs a
-working install and database, not only `vendor/`.
+The suite is on `hampel/xenforo-test-framework` `^5.13.1` and PHPUnit `^12.0`. The framework boots
+the enclosing XenForo install (`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs
+a working install and database, not only `vendor/`.
 
 **`$addonsToLoad` names this add-on, and the suite does not run without it.** Booting XenForo
 registers the Composer autoloader of every active add-on that declares one, so on a forum where
