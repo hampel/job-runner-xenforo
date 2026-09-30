@@ -157,7 +157,7 @@ mail goes to a sink.
 
 ## Tests
 
-The suite is on `hampel/xenforo-test-framework` `^5.11` and PHPUnit `^12.0`. The framework boots the
+The suite is on `hampel/xenforo-test-framework` `^5.13.1` and PHPUnit `^12.0`. The framework boots the
 enclosing XenForo install (`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs a
 working install and database, not only `vendor/`.
 
@@ -175,6 +175,13 @@ and the release still promises PHP 7.1.
 there for the test framework's `swapFs()`, which builds its `MemoryAdapter`, and it has to match
 the Flysystem 1.x that XenForo bundles. `composer outdated` will keep reporting a major version
 behind; that is expected, not a bump to take.
+
+**`composer audit` lists one advisory as ignored, and that is deliberate.** Every `league/flysystem`
+release up to 3.35.2 carries `PKSA-w9tt-7782-78jx`, and Composer refuses to install an affected
+package by default — but flysystem 1.x has no patched release, and it is what XenForo supplies. So
+`composer.json` accepts that one id, with its reason, and pins `league/flysystem` to `^1.1.4`, above
+the critical `PKSA-pwh8-d4fr-nywn` that 1.1.4 fixed, which stays enforced. Dev dependencies only;
+none of it ships. The test framework's README carries the same two entries.
 
 ### How the tests reach real state without leaving any
 
