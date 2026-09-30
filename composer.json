@@ -1,13 +1,23 @@
 {
 	"license": "MIT",
 	"require-dev": {
-		"hampel/xenforo-test-framework": "^5.11",
+		"hampel/xenforo-test-framework": "^5.13.1",
+		"league/flysystem": "^1.1.4",
 		"league/flysystem-memory": "^1.0",
 		"phpunit/phpunit": "^12.0"
 	},
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
-    }
+	"autoload-dev": {
+		"psr-4": {
+			"Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"policy": {
+			"advisories": {
+				"ignore-id": {
+					"PKSA-w9tt-7782-78jx": "no patched flysystem 1.x exists; dev-only, for the test suite"
+				}
+			}
+		}
+	}
 }

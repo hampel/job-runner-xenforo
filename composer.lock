@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b14fcaf4940c54caa6f5487d20183f89",
+    "content-hash": "a17dad4b6f2977efee1791a5c6b645f2",
     "packages": [],
     "packages-dev": [
         {
@@ -64,29 +64,30 @@
         },
         {
             "name": "hampel/xenforo-test-framework",
-            "version": "5.11.0",
+            "version": "5.13.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hampel/xenforo-test-framework.git",
-                "reference": "b777e80644f8e6cf7d83c3d5e0fae942dcf3c81c"
+                "reference": "1187f07e1be6d6a03622b6fed015a26d644b7a00"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hampel/xenforo-test-framework/zipball/b777e80644f8e6cf7d83c3d5e0fae942dcf3c81c",
-                "reference": "b777e80644f8e6cf7d83c3d5e0fae942dcf3c81c",
+                "url": "https://api.github.com/repos/hampel/xenforo-test-framework/zipball/1187f07e1be6d6a03622b6fed015a26d644b7a00",
+                "reference": "1187f07e1be6d6a03622b6fed015a26d644b7a00",
                 "shasum": ""
             },
             "require": {
                 "mockery/mockery": "^1.6",
                 "php": ">=8.3.0",
-                "phpunit/phpunit": "^10.0|^11.0|^12.0"
+                "phpunit/phpunit": "^10.5|^11.0|^12.0"
             },
             "conflict": {
                 "league/flysystem-memory": ">=2.0"
             },
             "require-dev": {
+                "league/flysystem": "^1.1.4",
                 "league/flysystem-memory": "^1.0",
-                "nesbot/carbon": "^2.0|^3.0",
+                "nesbot/carbon": "^2.50|^3.0",
                 "phpstan/phpstan": "^2.1.22",
                 "phpstan/phpstan-mockery": "^2.0",
                 "xenforo-ltd/xf-cs-fixer": "^1.2"
@@ -124,7 +125,7 @@
                 "issues": "https://github.com/hampel/xenforo-test-framework/issues",
                 "source": "https://github.com/hampel/xenforo-test-framework"
             },
-            "time": "2026-09-28T23:45:53+00:00"
+            "time": "2026-09-30T04:48:43+00:00"
         },
         {
             "name": "league/flysystem",
@@ -995,16 +996,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "12.5.36",
+            "version": "12.5.37",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "ddb775588a0ea447d1c9b190c0f29c174ce81d65"
+                "reference": "684340c1590e5f3f3b859f5e80619725d88b63ba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/ddb775588a0ea447d1c9b190c0f29c174ce81d65",
-                "reference": "ddb775588a0ea447d1c9b190c0f29c174ce81d65",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/684340c1590e5f3f3b859f5e80619725d88b63ba",
+                "reference": "684340c1590e5f3f3b859f5e80619725d88b63ba",
                 "shasum": ""
             },
             "require": {
@@ -1073,7 +1074,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.36"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.37"
             },
             "funding": [
                 {
@@ -1081,7 +1082,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-09-25T08:47:40+00:00"
+            "time": "2026-09-29T12:08:54+00:00"
         },
         {
             "name": "sebastian/cli-parser",
