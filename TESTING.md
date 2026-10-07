@@ -20,7 +20,7 @@ under anything but `job-monitor:run-jobs` they add nothing.
 
 | command | does |
 |---|---|
-| `job-monitor:health-check` | checks the queue and cron through `Service\HealthCheck`; `--fix` queues a missing `cron` job via core's `updateMinimumNextRunTime()` |
+| `job-monitor:validate` | checks the queue and cron through `Service\HealthCheck`; exits 1 on a problem, and 2 on a warning under `--strict`; `--fix` queues a missing `cron` job via core's `updateMinimumNextRunTime()` |
 | `job-monitor:run-jobs` | runs the queue by hand, logging each job and cron entry; boots `Hampel\JobRunner\App` for the logger |
 | `job-monitor:show-jobs` | lists the job queue |
 | `job-monitor:show-failed-jobs` | lists `xf_failed_job`, newest first, or one row in full; on 2.2 says there is none |
@@ -37,7 +37,7 @@ commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They 
 ### Everything else
 
 - A simpleCache value, `Hampel/JobRunner` / `legacyRunJobsLastUsed`: when `hg:run-jobs` last ran,
-  written at most hourly, and read by the health check.
+  written at most hourly, and read by `job-monitor:validate`.
 - `Setup::upgrade()` and `uninstall()` delete `internal-data://run-jobs-lock.txt`, which versions
   before 3.0.0 could leave behind.
 - A table, `xf_hampel_jobrunner_stat`: runs, total and maximum milliseconds and failures per job
@@ -66,9 +66,11 @@ commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They 
 - **Tests must never call `Setup::install()`, `upgrade()` or `uninstall()`.** They create or drop
   the statistics table, DDL cannot be rolled back, and the test would change the forum's real
   schema. The sandbox upgrade test covers them.
-- **The health check's exit codes and `--json` keys are an interface.** 0, 1 and 2, and the JSON
-  document's keys, are what monitoring reads; changing either breaks every alert built on them.
-  `HealthCheckTest` pins both.
+- **`job-monitor:validate`'s exit codes and `--json` keys are an interface, and the numbering is
+  not the obvious one.** 1 is a problem with or without `--strict`; a warning is 0, or 2 under
+  `--strict`. That is the contract every `<addon>:validate` shares, and the reverse of the
+  monitoring-plugin convention, so a change "back" to 0/1/2 would break every caller.
+  `HealthCheckTest` pins every combination, and the JSON keys.
 - **`hg:run-jobs` must stay silent.** Cron mails any output, so anything it printed would arrive
   as an email every minute. `LegacyRunJobsCommandTest` pins its output to `xf:run-jobs`'s.
 - **An `Error` from a cron callback is handled by XenForo, differently per line.** 2.3 logs it and
@@ -119,9 +121,9 @@ Each regression test for a fix since 2.1.3 was confirmed to fail with its fix re
   run the job queue and check the server error log — the file clean-up runs after the upgrade
   reports success. Confirm `xf_hampel_jobrunner_stat` exists and fills as jobs run, and that
   uninstalling drops it.
-- **The health check on a real forum.** Run `job-monitor:health-check` on a forum whose cron is
+- **Validate on a real forum.** Run `job-monitor:validate` on a forum whose cron is
   healthy and read every line; then stop cron for over an hour and confirm it reports the overdue
-  jobs and cron tasks, and exits 2.
+  jobs and cron tasks as problems, and exits 1.
 - **The PHP floor.** The suite needs PHP 8.3 for its own tooling; the add-on promises 7.1. Run
   `job-monitor:run-jobs` once on the oldest PHP a supported XenForo install allows.
 - **`job-monitor:queue-test-job` sends a real email** through the forum's mail transport. Use an

@@ -17,12 +17,12 @@ This file covers only what is specific to this add-on.
 
 **Command-line tools for watching and diagnosing the job queue and cron — not a job runner.** Cron
 runs XenForo's own `xf:run-jobs`; this add-on is what a person, or a monitoring system, runs to see
-what it is doing. Its commands are `job-monitor:health-check` (is the queue and cron running; exits
-0, 1 or 2), `job-monitor:run-jobs` (run the queue and log each job and cron entry),
-`job-monitor:show-jobs`, `job-monitor:show-failed-jobs`, `job-monitor:show-stats`,
-`job-monitor:show-crons`, `job-monitor:run-cron <id>` and `job-monitor:queue-test-job <email>`.
-There are no options, templates, routes or listeners — `_output/` holds two class extensions, and
-the daily `jobMonitorPrune` cron entry with its title phrase.
+what it is doing. Its commands are `job-monitor:validate` (is the queue and cron running),
+`job-monitor:run-jobs` (run the queue and log each job and cron entry), `job-monitor:show-jobs`,
+`job-monitor:show-failed-jobs`, `job-monitor:show-stats`, `job-monitor:show-crons`,
+`job-monitor:run-cron <id>` and `job-monitor:queue-test-job <email>`. There are no options,
+templates, routes or listeners — `_output/` holds two class extensions, and the daily
+`jobMonitorPrune` cron entry with its title phrase.
 
 **The add-on records, under any runner:**
 - **every job and cron entry's run time**, as hourly buckets in its one table,
@@ -39,13 +39,26 @@ when the new code runs before `Setup` has created it.
 **`hg:run-jobs` is a compatibility shim, not a command of the add-on's own.** Before 3.0.0 the
 add-on *was* the runner and people put `hg:run-jobs` in their crontab, so it survives as a wrapper
 that runs `xf:run-jobs` with the same options. **It must stay silent** — cron mails any output — and
-records its use in the simpleCache instead, which `job-monitor:health-check` reports.
+records its use in the simpleCache instead, which `job-monitor:validate` reports.
 
 **The other `hg:` names are hidden subclasses in `Cli/Command/Legacy/`, not Symfony aliases**, for
 the 3.x line only. `list` prints a command's aliases in front of its description, so as aliases
 the old names cluttered every new command's line; a hidden command still runs but is never
 listed. `LegacyCommandsTest` pins both halves. Remove the four classes, and `hg:run-jobs`, at the
 next major version.
+
+## `job-monitor:validate` follows the shared `<addon>:validate` contract
+
+**1 is a problem, with or without `--strict`; a warning is 0, or 2 under `--strict`.** Decided
+2026-10-07 for every add-on's validate command, so that `validate && next-step` works as a gate
+and two commands never give exit 1 opposite meanings. **It is not the monitoring-plugin numbering**
+and must not drift back to it: the command was `job-monitor:health-check` with 0/1/2 as
+ok/warning/problem until 3.0.2, changed while unpublished and with nothing polling it.
+
+The checks live in `Service\HealthCheck`, which keeps its three states; the command only maps them
+to exit codes and renders them. Anything else that wants the checks — an HTTP endpoint, say —
+calls the service, not the command. `--json` reports the status found, whatever the flags; only
+`exit_code` follows `--strict`.
 
 ## How a run is wired together
 

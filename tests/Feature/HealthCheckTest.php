@@ -1,13 +1,13 @@
 <?php namespace Tests\Feature;
 
-use Hampel\JobRunner\Cli\Command\HealthCheck as HealthCheckCommand;
+use Hampel\JobRunner\Cli\Command\Validate as ValidateCommand;
 use Hampel\JobRunner\Cli\Command\Legacy\RunJobs as LegacyRunJobs;
 use Hampel\JobRunner\Service\HealthCheck;
 use Hampel\Testing\Concerns\UsesDatabaseTransactions;
 use Tests\TestCase;
 
 /**
- * job-monitor:health-check and the service behind it.
+ * job-monitor:validate and the service behind it.
  */
 class HealthCheckTest extends TestCase
 {
@@ -171,29 +171,71 @@ class HealthCheckTest extends TestCase
 		]));
 	}
 
-	public function test_the_command_exits_0_when_healthy()
+	/**
+	 * The exit contract every <addon>:validate shares: 1 means a problem, with or without --strict,
+	 * and a warning is 0 unless --strict asks to hear of it, when it is 2. Deliberately not the
+	 * monitoring-plugin numbering, where 1 is the warning.
+	 */
+	public static function exitCodes(): array
 	{
-		$tester = $this->runConsoleCommand(new HealthCheckCommand());
+		return [
+			'healthy' => ['healthy', false, 0],
+			'healthy, strict' => ['healthy', true, 0],
+			'warning' => ['warning', false, 0],
+			'warning, strict' => ['warning', true, 2],
+			'problem' => ['problem', false, 1],
+			'problem, strict' => ['problem', true, 1],
+			'problem and warning, strict' => ['both', true, 1],
+		];
+	}
 
-		$this->assertSame(0, $tester->getStatusCode(), $tester->getDisplay());
+	#[\PHPUnit\Framework\Attributes\DataProvider('exitCodes')]
+	public function test_exit_code($state, $strict, $expected)
+	{
+		if ($state == 'warning' || $state == 'both')
+		{
+			$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 100000 - 600);
+		}
+		if ($state == 'problem' || $state == 'both')
+		{
+			$this->removeCronJob();
+		}
+
+		$tester = $this->runConsoleCommand(new ValidateCommand(), $strict ? ['--strict' => true] : []);
+
+		$this->assertSame($expected, $tester->getStatusCode(), $tester->getDisplay());
+	}
+
+	public function test_the_command_is_named_validate()
+	{
+		$this->assertSame('job-monitor:validate', (new ValidateCommand())->getName());
+	}
+
+	public function test_a_healthy_run_lists_every_check()
+	{
+		$tester = $this->runConsoleCommand(new ValidateCommand());
+
 		$this->assertStringNotContainsString('WARNING', $tester->getDisplay());
 		$this->assertStringContainsString('Cron job queued', $tester->getDisplay());
 	}
 
-	public function test_the_command_exits_1_on_a_warning()
+	public function test_a_warning_is_still_shown_when_it_does_not_change_the_exit_code()
 	{
 		$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 100000 - 600);
 
-		$this->assertSame(1, $this->runConsoleCommand(new HealthCheckCommand())->getStatusCode());
+		$tester = $this->runConsoleCommand(new ValidateCommand());
+
+		$this->assertSame(0, $tester->getStatusCode());
+		$this->assertStringContainsString('WARNING', $tester->getDisplay());
 	}
 
-	public function test_the_command_exits_2_on_a_problem_and_changes_nothing()
+	public function test_a_problem_is_reported_and_nothing_is_changed()
 	{
 		$this->removeCronJob();
 
-		$tester = $this->runConsoleCommand(new HealthCheckCommand());
+		$tester = $this->runConsoleCommand(new ValidateCommand());
 
-		$this->assertSame(2, $tester->getStatusCode());
+		$this->assertSame(1, $tester->getStatusCode());
 		$this->assertStringContainsString('--fix', $tester->getDisplay());
 		$this->assertDatabaseMissing('xf_job', ['unique_key' => 'cron']);
 	}
@@ -202,7 +244,7 @@ class HealthCheckTest extends TestCase
 	{
 		$this->removeCronJob();
 
-		$tester = $this->runConsoleCommand(new HealthCheckCommand(), ['--fix' => true]);
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--fix' => true]);
 
 		$this->assertSame(0, $tester->getStatusCode(), $tester->getDisplay());
 		$this->assertStringContainsString('Queued the cron job again.', $tester->getDisplay());
@@ -213,24 +255,39 @@ class HealthCheckTest extends TestCase
 	{
 		$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 100000 - 600);
 
-		$tester = $this->runConsoleCommand(new HealthCheckCommand(), ['--json' => true]);
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--json' => true, '--strict' => true]);
 		$result = json_decode($tester->getDisplay(), true);
 
 		$this->assertIsArray($result, 'the output must be a single JSON document');
-		$this->assertSame(1, $tester->getStatusCode());
+		$this->assertSame(2, $tester->getStatusCode());
 		$this->assertSame('warning', $result['status']);
-		$this->assertSame(1, $result['exit_code']);
+		$this->assertSame(2, $result['exit_code']);
+		$this->assertTrue($result['strict']);
 		$this->assertSame(100000, $result['checked_at']);
 		$this->assertNull($result['fixed_cron_job']);
 		$this->assertCount(8, $result['checks']);
 		$this->assertSame(['check', 'label', 'status', 'detail'], array_keys($result['checks'][0]));
 	}
 
+	public function test_json_status_does_not_depend_on_strict()
+	{
+		$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 100000 - 600);
+
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--json' => true]);
+		$result = json_decode($tester->getDisplay(), true);
+
+		// the status says what was found; only the exit code is the flag's business
+		$this->assertSame('warning', $result['status']);
+		$this->assertSame(0, $result['exit_code']);
+		$this->assertFalse($result['strict']);
+		$this->assertSame(0, $tester->getStatusCode());
+	}
+
 	public function test_json_output_reports_a_fix()
 	{
 		$this->removeCronJob();
 
-		$tester = $this->runConsoleCommand(new HealthCheckCommand(), ['--json' => true, '--fix' => true]);
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--json' => true, '--fix' => true]);
 		$result = json_decode($tester->getDisplay(), true);
 
 		$this->assertIsArray($result, 'the fix message must not break the JSON');

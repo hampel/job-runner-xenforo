@@ -7,17 +7,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Report whether the job queue and cron are running. Exits 0 when all is well, 1 on a warning and
- * 2 on a problem, so monitoring can run it as it stands.
+ * Report whether the job queue and cron are running.
+ *
+ * Exit code: 1 if any check found a problem, 0 otherwise - a warning does not fail, so a deploy or
+ * a cron job can depend on it. --strict makes a warning exit 2, for a monitor that wants to hear of
+ * one; it changes nothing else. This is the contract every <addon>:validate shares, and it is not
+ * the monitoring-plugin numbering: 1 always means a problem.
  */
-class HealthCheck extends Command
+class Validate extends Command
 {
-	const EXIT_CODES = [
-		HealthCheckService::OK => 0,
-		HealthCheckService::WARNING => 1,
-		HealthCheckService::PROBLEM => 2,
-	];
-
 	const STYLES = [
 		HealthCheckService::OK => 'info',
 		HealthCheckService::WARNING => 'comment',
@@ -27,8 +25,14 @@ class HealthCheck extends Command
 	protected function configure()
 	{
 		$this
-			->setName('job-monitor:health-check')
-			->setDescription('Checks that the job queue and cron are running. Exits 0 if healthy, 1 on a warning, 2 on a problem.')
+			->setName('job-monitor:validate')
+			->setDescription('Checks that the job queue and cron are running. Exits 1 on a problem; --strict exits 2 on a warning.')
+			->addOption(
+				'strict',
+				null,
+				InputOption::VALUE_NONE,
+				'Exit 2 when there are warnings and no problems, instead of 0'
+			)
 			->addOption(
 				'fix',
 				null,
@@ -48,6 +52,7 @@ class HealthCheck extends Command
 		$health = $this->healthCheck();
 		$results = $health->run();
 		$json = $input->getOption('json');
+		$strict = (bool) $input->getOption('strict');
 
 		// null: no repair was needed or asked for
 		$fixed = null;
@@ -65,18 +70,20 @@ class HealthCheck extends Command
 		}
 
 		$status = $health->worstStatus($results);
+		$exitCode = $this->exitCode($status, $strict);
 
 		if ($json)
 		{
 			$output->writeln(json_encode([
 				'status' => $status,
-				'exit_code' => self::EXIT_CODES[$status],
+				'exit_code' => $exitCode,
+				'strict' => $strict,
 				'checked_at' => \XF::$time,
 				'fixed_cron_job' => $fixed,
 				'checks' => $results,
 			], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), OutputInterface::OUTPUT_RAW);
 
-			return self::EXIT_CODES[$status];
+			return $exitCode;
 		}
 
 		foreach ($results AS $result)
@@ -88,7 +95,20 @@ class HealthCheck extends Command
 			));
 		}
 
-		return self::EXIT_CODES[$status];
+		return $exitCode;
+	}
+
+	/**
+	 * A problem is 1 whatever the flag; a warning is 2 only under --strict.
+	 */
+	protected function exitCode($status, $strict)
+	{
+		if ($status == HealthCheckService::PROBLEM)
+		{
+			return 1;
+		}
+
+		return ($strict && $status == HealthCheckService::WARNING) ? 2 : 0;
 	}
 
 	protected function hasProblem(array $results, $check)

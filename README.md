@@ -42,7 +42,7 @@ XenForo's scheduled tasks. `job-monitor:show-crons` shows when each is next due.
 
 | command | does |
 |---|---|
-| `job-monitor:health-check` | check that the job queue and cron are running; `--fix` queues a missing cron job again |
+| `job-monitor:validate` | check that the job queue and cron are running; `--fix` queues a missing cron job again |
 | `job-monitor:run-jobs` | run outstanding jobs and due cron tasks by hand, logging each as it runs |
 | `job-monitor:show-jobs` | list the job queue; `--all` for more than 100 |
 | `job-monitor:show-failed-jobs` | list jobs that failed, newest first; `--id` shows one in full. XenForo 2.3 or later |
@@ -64,9 +64,9 @@ It exits 0 when it has run and 1 when XenForo cannot run jobs at all. `job-monit
 It is safe to run while cron is running `xf:run-jobs`: XenForo claims each job before running it,
 so the two never run the same job.
 
-## Health check
+## Validate
 
-`job-monitor:health-check` reports whether jobs and cron are actually running, one line per check:
+`job-monitor:validate` reports whether jobs and cron are actually running, one line per check:
 
 | check | a problem when |
 |---|---|
@@ -82,17 +82,28 @@ so the two never run the same job.
 It changes nothing unless you pass `--fix`, which does the one repair it knows: queue a missing
 `cron` job again, as XenForo does when a cron entry is saved.
 
-It exits 0 when everything is fine, 1 on a warning and 2 on a problem, so a monitoring system can
-run it as it stands:
+**It exits 1 if any check found a problem and 0 otherwise — warnings included** — so a deploy or a
+cron job can depend on it. `--strict` makes a warning exit 2, for a monitor that should hear of
+one:
+
+| | all fine | warnings only | any problem |
+|---|---|---|---|
+| `job-monitor:validate` | 0 | 0 | 1 |
+| `job-monitor:validate --strict` | 0 | 2 | 1 |
 
 ```bash
-php cmd.php job-monitor:health-check || echo "jobs or cron need attention"
+php cmd.php job-monitor:validate || echo "jobs or cron are not running"
+php cmd.php job-monitor:validate --strict     # for a monitor: a warning exits 2
 ```
 
-`--json` prints the same result as one JSON document — the overall `status`, the `exit_code`,
-`checked_at`, `fixed_cron_job` (`true`, `false`, or `null` when no repair was attempted) and each
-check's `check`, `label`, `status` and `detail` — for a monitoring system that reads more than the
-exit code.
+`--strict` changes only the exit code. **This is not the monitoring-plugin numbering**, where 1 is a
+warning and 2 is critical: here 1 always means a problem. Map the values explicitly in whatever
+reads them.
+
+`--json` prints the same result as one JSON document — the overall `status` (`ok`, `warning` or
+`problem`, whatever the flags), the `exit_code`, `strict`, `checked_at`, `fixed_cron_job` (`true`,
+`false`, or `null` when no repair was attempted) and each check's `check`, `label`, `status` and
+`detail` — for a monitoring system that reads more than the exit code.
 
 ## Failed jobs
 
@@ -106,7 +117,8 @@ php cmd.php job-monitor:show-failed-jobs --id=24    # one in full, with its stac
 ```
 
 A daily cron task deletes records older than 30 days, including those XenForo wrote in debug mode,
-which it otherwise keeps forever. The health check warns when any job has failed in the last day.
+which it otherwise keeps forever. `job-monitor:validate` warns when any job has failed in the last
+day.
 
 ## Statistics
 
