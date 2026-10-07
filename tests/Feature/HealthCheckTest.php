@@ -159,6 +159,51 @@ class HealthCheckTest extends TestCase
 		$this->assertSame(HealthCheck::OK, $this->statusOf('legacy_crontab'));
 	}
 
+	/**
+	 * A service whose overdue-jobs check throws, as a database error or a changed core method would.
+	 */
+	protected function healthWithABrokenCheck(): HealthCheck
+	{
+		return new class($this->app()) extends HealthCheck
+		{
+			public function checkOverdueJobs()
+			{
+				throw new \RuntimeException('the queue could not be read');
+			}
+		};
+	}
+
+	public function test_a_check_that_throws_is_a_problem_and_the_others_still_run()
+	{
+		$this->fakesErrors();
+
+		$results = $this->healthWithABrokenCheck()->run();
+
+		$this->assertCount(8, $results, 'every check must still report');
+
+		$byCheck = array_column($results, null, 'check');
+		$this->assertSame(HealthCheck::PROBLEM, $byCheck['overdue_jobs']['status']);
+		$this->assertSame('Overdue jobs', $byCheck['overdue_jobs']['label']);
+		$this->assertStringContainsString('the queue could not be read', $byCheck['overdue_jobs']['detail']);
+
+		// the checks either side of it ran as usual
+		$this->assertSame(HealthCheck::OK, $byCheck['cron_job']['status']);
+		$this->assertSame(HealthCheck::OK, $byCheck['overdue_crons']['status']);
+		$this->assertSame(HealthCheck::OK, $byCheck['legacy_crontab']['status']);
+	}
+
+	public function test_a_check_that_throws_is_logged_under_the_add_on_prefix()
+	{
+		$this->fakesErrors();
+
+		$this->healthWithABrokenCheck()->run();
+
+		$this->assertExceptionLogged(\RuntimeException::class, function ($logged)
+		{
+			return strpos($logged['message'], 'JobRunner: ') === 0;
+		});
+	}
+
 	public function test_the_worst_status_wins()
 	{
 		$health = $this->health();

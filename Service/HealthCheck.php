@@ -7,7 +7,8 @@ use XF\Service\AbstractService;
  * Checks whether the job queue and cron are running, and why not when they are not.
  *
  * Read-only unless fixCronJob() is called. Each check returns a result with a status, a short
- * label and a detail line; the worst status decides the command's exit code.
+ * label and a detail line; the worst status decides the command's exit code. A check that throws
+ * is reported as a problem and logged, and the rest still run.
  */
 class HealthCheck extends AbstractService
 {
@@ -30,21 +31,47 @@ class HealthCheck extends AbstractService
 	/** hg:run-jobs used within this long means a crontab still calls it */
 	const LEGACY_RECENT = 7200;
 
+	/** every server error log row this add-on writes begins with this */
+	const ERROR_LOG_PREFIX = 'JobRunner: ';
+
+	/** in the order they are reported: check key => [label, method] */
+	const CHECKS = [
+		'trigger' => ['Job trigger', 'checkTrigger'],
+		'cron_job' => ['Cron job queued', 'checkCronJobQueued'],
+		'overdue_jobs' => ['Overdue jobs', 'checkOverdueJobs'],
+		'overdue_crons' => ['Overdue cron tasks', 'checkOverdueCronEntries'],
+		'admin_warning' => ['Admin warning', 'checkAdminWarning'],
+		'manual_jobs' => ['Manual jobs', 'checkManualJobs'],
+		'failed_jobs' => ['Failed jobs', 'checkFailedJobs'],
+		'legacy_crontab' => ['Crontab', 'checkLegacyCrontab'],
+	];
+
 	/**
 	 * @return array[] each ['check' => key, 'label' => text, 'status' => OK|WARNING|PROBLEM, 'detail' => text]
 	 */
 	public function run()
 	{
-		return [
-			$this->checkTrigger(),
-			$this->checkCronJobQueued(),
-			$this->checkOverdueJobs(),
-			$this->checkOverdueCronEntries(),
-			$this->checkAdminWarning(),
-			$this->checkManualJobs(),
-			$this->checkFailedJobs(),
-			$this->checkLegacyCrontab(),
-		];
+		$results = [];
+
+		foreach (self::CHECKS AS $check => $definition)
+		{
+			list($label, $method) = $definition;
+
+			try
+			{
+				$results[] = $this->$method();
+			}
+			catch (\Throwable $e)
+			{
+				// one check failing must not hide the rest: this runs when something is already wrong
+				\XF::logException($e, false, self::ERROR_LOG_PREFIX);
+
+				$results[] = $this->result($check, $label, self::PROBLEM,
+					'This check could not run: ' . $e->getMessage());
+			}
+		}
+
+		return $results;
 	}
 
 	/**

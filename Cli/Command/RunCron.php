@@ -70,7 +70,7 @@ class RunCron extends Command
 		}
 		catch (\Throwable $e)
 		{
-			\XF::logException($e, true);
+			\XF::logException($e, true, \Hampel\JobRunner\Service\HealthCheck::ERROR_LOG_PREFIX);
 
 			$output->writeln("<error>Exception running cron: " . $e->getMessage() . "</error>");
 			return 1;
