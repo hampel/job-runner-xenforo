@@ -96,13 +96,12 @@ vendor/bin/phpunit --order-by=reverse
 ```
 
 It covers both extensions, every command including the `hg:run-jobs` shim and each health check,
-failed-job and statistics recording and pruning, the
-logger, the test job and `Setup`. Cron entries and jobs are inserted inside a rolled-back
-transaction, with the test clock far in the past so only those rows are due; mail, the job queue,
-the error log, the registry and the simpleCache are faked; the run commands run against a mocked job
-manager. **Nothing on the forum runs or changes.** A run leaves the error log, the job queue and the
-registry exactly as it found them — worth confirming by counting them either side when the suite
-changes.
+failed-job and statistics recording and pruning, the logger, the test job and `Setup`. Cron entries
+and jobs are inserted inside a rolled-back transaction, with the test clock far in the past so only
+those rows are due; mail, the job queue, the error log, the registry and the simpleCache are faked;
+the run commands run against a mocked job manager. **Nothing on the forum runs or changes.** A run
+leaves the error log, the job queue and the registry exactly as it found them — worth confirming by
+counting them either side when the suite changes.
 
 Each regression test for a fix since 2.1.3 was confirmed to fail with its fix reverted.
 
