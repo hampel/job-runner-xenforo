@@ -70,7 +70,7 @@ class Validate extends Command
 		}
 
 		$status = $health->worstStatus($results);
-		$exitCode = $this->exitCode($status, $strict);
+		$exitCode = $this->checkExitCode($status, $strict);
 
 		if ($json)
 		{
@@ -101,7 +101,7 @@ class Validate extends Command
 	/**
 	 * A problem is 1 whatever the flag; a warning is 2 only under --strict.
 	 */
-	protected function exitCode($status, $strict)
+	protected function checkExitCode($status, $strict)
 	{
 		if ($status == HealthCheckService::PROBLEM)
 		{
