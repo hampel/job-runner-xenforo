@@ -16,6 +16,9 @@ class HealthCheck extends AbstractService
 	const WARNING = 'warning';
 	const PROBLEM = 'problem';
 
+	/** the check did not apply here - never a pass, and never counted against the run */
+	const SKIPPED = 'skipped';
+
 	/** a due job waiting longer than this, in seconds, suggests the runner is late */
 	const JOB_WARNING_AGE = 300;
 
@@ -47,7 +50,7 @@ class HealthCheck extends AbstractService
 	];
 
 	/**
-	 * @return array[] each ['check' => key, 'label' => text, 'status' => OK|WARNING|PROBLEM, 'detail' => text]
+	 * @return array[] each ['check' => key, 'label' => text, 'status' => OK|WARNING|PROBLEM|SKIPPED, 'detail' => text]
 	 */
 	public function run()
 	{
@@ -99,15 +102,16 @@ class HealthCheck extends AbstractService
 				'Server based: jobs run only from cron, which should run xf:run-jobs every minute.');
 		}
 
-		return $this->result('trigger', 'Job trigger', self::OK,
-			'Activity based: jobs run from page views, so a quiet forum runs them late.');
+		return $this->result('trigger', 'Job trigger', self::WARNING,
+			'Activity based: jobs run from page views, so a quiet forum runs them late. Set Job run '
+			. 'trigger to server based and run xf:run-jobs from cron every minute.');
 	}
 
 	public function checkCronJobQueued()
 	{
 		if (!$this->activeCronEntryCount())
 		{
-			return $this->result('cron_job', 'Cron job queued', self::OK, 'No active cron entries.');
+			return $this->result('cron_job', 'Cron job queued', self::SKIPPED, 'No active cron entries.');
 		}
 
 		if ($this->cronJob())
@@ -221,7 +225,7 @@ class HealthCheck extends AbstractService
 	{
 		if (\XF::$versionId < 2030000)
 		{
-			return $this->result('failed_jobs', 'Failed jobs', self::OK,
+			return $this->result('failed_jobs', 'Failed jobs', self::SKIPPED,
 				'XenForo 2.2 does not record failed jobs; check the server error log.');
 		}
 

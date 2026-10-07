@@ -88,6 +88,13 @@ class Validate extends Command
 
 		foreach ($results AS $result)
 		{
+			if ($result['status'] == HealthCheckService::SKIPPED)
+			{
+				// a check that did not apply gets a blank marker: it is not a pass
+				$output->writeln(sprintf('%-7s %-19s %s', '', $result['label'], $result['detail']));
+				continue;
+			}
+
 			$style = self::STYLES[$result['status']];
 			$output->writeln(sprintf(
 				'<%s>%-7s</%s> %-19s %s',

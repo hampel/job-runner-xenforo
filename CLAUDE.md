@@ -55,10 +55,14 @@ and two commands never give exit 1 opposite meanings. **It is not the monitoring
 and must not drift back to it: the command was `job-monitor:health-check` with 0/1/2 as
 ok/warning/problem until 3.0.2, changed while unpublished and with nothing polling it.
 
-The checks live in `Service\HealthCheck`, which keeps its three states; the command only maps them
-to exit codes and renders them. Anything else that wants the checks — an HTTP endpoint, say —
-calls the service, not the command. `--json` reports the status found, whatever the flags; only
-`exit_code` follows `--strict`.
+The checks live in `Service\HealthCheck`; the command only maps its states to exit codes and renders
+them. **There are four states, and `SKIPPED` is not `OK`**: a check that did not apply — failed jobs
+on XenForo 2.2, the cron job on a forum with no cron tasks — prints a blank marker and never counts
+for or against the run. A check that throws is caught in `run()`, reported as a `PROBLEM` and
+logged, so the rest still report; a new check goes in the `CHECKS` map to get that. **Every server
+error log row the add-on writes begins `JobRunner: `** (`ERROR_LOG_PREFIX`). Anything else that
+wants the checks — an HTTP endpoint, say — calls the service, not the command. `--json` reports the
+status found, whatever the flags; only `exit_code` follows `--strict`.
 
 ## How a run is wired together
 

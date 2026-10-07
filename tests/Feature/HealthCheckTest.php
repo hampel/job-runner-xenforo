@@ -78,7 +78,41 @@ class HealthCheckTest extends TestCase
 		$this->removeCronJob();
 		$this->app()->db()->update('xf_cron_entry', ['active' => 0], '1=1');
 
-		$this->assertSame(HealthCheck::OK, $this->statusOf('cron_job'));
+		// nothing to check is not the same as checked and fine
+		$this->assertSame(HealthCheck::SKIPPED, $this->statusOf('cron_job'));
+	}
+
+	public function test_server_based_triggering_is_ok()
+	{
+		$this->assertSame(HealthCheck::OK, $this->statusOf('trigger'));
+	}
+
+	public function test_activity_based_triggering_is_a_warning()
+	{
+		$this->setOption('jobRunTrigger', 'activity');
+
+		$this->assertSame(HealthCheck::WARNING, $this->statusOf('trigger'));
+	}
+
+	public function test_failed_jobs_are_skipped_where_xenforo_does_not_record_them()
+	{
+		$this->setStaticProperty(\XF::class, 'versionId', 2021970);
+
+		$result = $this->health()->checkFailedJobs();
+
+		$this->assertSame(HealthCheck::SKIPPED, $result['status']);
+		$this->assertStringContainsString('XenForo 2.2', $result['detail']);
+	}
+
+	public function test_a_skipped_check_never_counts_against_the_run()
+	{
+		$this->assertSame(HealthCheck::OK, $this->health()->worstStatus([
+			['status' => HealthCheck::SKIPPED], ['status' => HealthCheck::OK],
+		]));
+		$this->assertSame(HealthCheck::OK, $this->health()->worstStatus([['status' => HealthCheck::SKIPPED]]));
+		$this->assertSame(HealthCheck::WARNING, $this->health()->worstStatus([
+			['status' => HealthCheck::SKIPPED], ['status' => HealthCheck::WARNING],
+		]));
 	}
 
 	public function test_fix_queues_the_cron_job_again()
@@ -272,6 +306,27 @@ class HealthCheckTest extends TestCase
 
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertStringContainsString('WARNING', $tester->getDisplay());
+	}
+
+	public function test_a_skipped_check_is_shown_with_a_blank_marker_and_exits_0()
+	{
+		$this->app()->db()->update('xf_cron_entry', ['active' => 0], '1=1');
+
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--strict' => true]);
+
+		$this->assertSame(0, $tester->getStatusCode(), $tester->getDisplay());
+		$this->assertMatchesRegularExpression('/^ {8}Cron job queued/m', $tester->getDisplay());
+		$this->assertStringNotContainsString('SKIPPED', $tester->getDisplay());
+	}
+
+	public function test_json_names_a_skipped_check()
+	{
+		$this->app()->db()->update('xf_cron_entry', ['active' => 0], '1=1');
+
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--json' => true]);
+		$byCheck = array_column(json_decode($tester->getDisplay(), true)['checks'], null, 'check');
+
+		$this->assertSame('skipped', $byCheck['cron_job']['status']);
 	}
 
 	public function test_a_problem_is_reported_and_nothing_is_changed()

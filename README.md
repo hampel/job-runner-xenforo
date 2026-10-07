@@ -70,14 +70,18 @@ so the two never run the same job.
 
 | check | a problem when |
 |---|---|
-| Job trigger | never — says which trigger the forum uses |
-| Cron job queued | XenForo's `cron` job is missing from the queue, so no scheduled task will run until a cron entry is next saved |
+| Job trigger | **Job run trigger** is activity based, so jobs wait for page views instead of running from cron (a warning) |
+| Cron job queued | XenForo's `cron` job is missing from the queue, so no scheduled task will run until a cron entry is next saved. Skipped when the forum has no active cron tasks |
 | Overdue jobs | the oldest due job has waited more than 5 minutes (a warning) or an hour (a problem) |
 | Overdue cron tasks | a cron task is more than an hour past its next run |
 | Admin warning | the admin control panel is showing "There are scheduled jobs outstanding which have not run" (a warning) |
 | Manual jobs | a manually started job has stopped, such as a rebuild left unfinished in a browser (a warning) |
-| Failed jobs | any job has failed in the last day (a warning; XenForo 2.3 or later) |
+| Failed jobs | any job has failed in the last day (a warning). Skipped on XenForo 2.2, which does not record them |
 | Crontab | `hg:run-jobs` has run in the last two hours, so a crontab still needs changing (a warning) |
+
+Each line starts `OK`, `WARNING` or `PROBLEM`. **A check that did not apply starts with a blank**,
+not `OK`: it was not checked, so it is not a pass, and it never changes the exit code. A check that
+cannot run at all is a `PROBLEM`, with the reason, and the others still report.
 
 It changes nothing unless you pass `--fix`, which does the one repair it knows: queue a missing
 `cron` job again, as XenForo does when a cron entry is saved.

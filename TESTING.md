@@ -70,7 +70,8 @@ commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They 
   not the obvious one.** 1 is a problem with or without `--strict`; a warning is 0, or 2 under
   `--strict`. That is the contract every `<addon>:validate` shares, and the reverse of the
   monitoring-plugin convention, so a change "back" to 0/1/2 would break every caller.
-  `HealthCheckTest` pins every combination, and the JSON keys.
+  `HealthCheckTest` pins every combination, and the JSON keys. A check's `status` in the JSON is
+  `ok`, `warning`, `problem` or `skipped`.
 - **`hg:run-jobs` must stay silent.** Cron mails any output, so anything it printed would arrive
   as an email every minute. `LegacyRunJobsCommandTest` pins its output to `xf:run-jobs`'s.
 - **An `Error` from a cron callback is handled by XenForo, differently per line.** 2.3 logs it and
