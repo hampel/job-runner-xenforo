@@ -64,6 +64,25 @@ error log row the add-on writes begins `JobRunner: `** (`ERROR_LOG_PREFIX`). Any
 wants the checks — an HTTP endpoint, say — calls the service, not the command. `--json` reports the
 status found, whatever the flags; only `exit_code` follows `--strict`.
 
+### There is no `job-monitor:config`, deliberately
+
+**The convention pairs every `<addon>:validate` with an `<addon>:config`, and this add-on has only
+the first.** Decided 2026-10-08. A `config` command prints what a forum is configured to do and
+where each value comes from, and this add-on has nothing of its own to configure: no options, no
+`config.php` keys, no credentials. What it could print is either already a `validate` row — the job
+trigger, whether `hg:run-jobs` is still called — or a constant in the code, such as the 30 and 90
+day retention periods.
+
+**Add it when the add-on gains a setting an administrator can get wrong**:
+
+- an option or `config.php` key of its own — configurable retention, or a threshold in
+  `Service\HealthCheck`, are the likely first ones;
+- a credential or an external endpoint, such as somewhere to post a heartbeat;
+- a dependency on another add-on or service whose presence changes what it does.
+
+At that point `config` prints every setting with its source, and the new setting gets a `validate`
+check in the same change.
+
 ## How a run is wired together
 
 The pieces are spread across files that never reference each other directly, so this is the map.
