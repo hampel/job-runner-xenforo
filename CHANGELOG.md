@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.1.0 (2026-10-08)
+
+* **`job-monitor:health-check` is now `job-monitor:validate`, and its exit codes have changed.** It
+  exits `1` if any check found a problem and `0` otherwise, warnings included, so a deploy or a cron
+  job can depend on it. It used to exit `1` on a warning and `2` on a problem. The old name now
+  checks nothing and exits `1`, so anything still calling it fails loudly
+* new: `--strict` makes a warning exit `2`, for a monitor that should hear of one. `1` still means
+  a problem - this is not the monitoring-plugin numbering
+* a check that did not apply is shown with a blank marker and not as `OK`: failed jobs on XenForo
+  2.2, which does not record them, and the cron job on a forum with no active cron tasks. `--json`
+  reports these as `skipped`, and gains a `strict` key
+* activity based job triggering is now a warning, since jobs then wait for page views and do not
+  run from cron
+* a check that cannot run is reported as a problem with the reason, and the other checks still
+  report. It used to end the run
+* server error log entries written by the add-on begin `JobRunner: `
+* on XenForo 2.2, upgrading removes the files earlier versions left behind, which that version of
+  XenForo never deletes
+
 ## 3.0.1 (2026-09-29)
 
 * the `job-monitor:` commands are listed without their old `hg:` names beside them. `hg:show-jobs`,
