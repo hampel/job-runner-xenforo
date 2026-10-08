@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f66bd1b9574635c5fbd6e7542a584642",
+    "content-hash": "1b594575460b790fb19bad1214f90ace",
     "packages": [],
     "packages-dev": [
         {
@@ -64,16 +64,16 @@
         },
         {
             "name": "hampel/xenforo-test-framework",
-            "version": "5.16.0",
+            "version": "5.17.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hampel/xenforo-test-framework.git",
-                "reference": "35af1e6171e2aa05099c31be12a10e52e6302d3f"
+                "reference": "b84a40aeb70bfa8a4eb1825354931f0fdbdf89c1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hampel/xenforo-test-framework/zipball/35af1e6171e2aa05099c31be12a10e52e6302d3f",
-                "reference": "35af1e6171e2aa05099c31be12a10e52e6302d3f",
+                "url": "https://api.github.com/repos/hampel/xenforo-test-framework/zipball/b84a40aeb70bfa8a4eb1825354931f0fdbdf89c1",
+                "reference": "b84a40aeb70bfa8a4eb1825354931f0fdbdf89c1",
                 "shasum": ""
             },
             "require": {
@@ -125,7 +125,7 @@
                 "issues": "https://github.com/hampel/xenforo-test-framework/issues",
                 "source": "https://github.com/hampel/xenforo-test-framework"
             },
-            "time": "2026-10-08T02:30:21+00:00"
+            "time": "2026-10-08T04:48:22+00:00"
         },
         {
             "name": "league/flysystem",
