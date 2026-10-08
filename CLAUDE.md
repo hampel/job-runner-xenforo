@@ -42,10 +42,10 @@ that runs `xf:run-jobs` with the same options. **It must stay silent** — cron 
 records its use in the simpleCache instead, which `job-monitor:validate` reports.
 
 **The other `hg:` names are hidden subclasses in `Cli/Command/Legacy/`, not Symfony aliases**, for
-the 3.x line only. `list` prints a command's aliases in front of its description, so as aliases
-the old names cluttered every new command's line; a hidden command still runs but is never
-listed. `LegacyCommandsTest` pins both halves. Remove the four classes, and `hg:run-jobs`, at the
-next major version.
+the 3.x line only. `list` prints a command's aliases in front of its description, so as aliases the
+old names cluttered every new command's line; a hidden command still runs but is never listed.
+`LegacyCommandsTest` pins both halves. Remove the four classes, `hg:run-jobs` and
+`Legacy\HealthCheck`, at the next major version.
 
 ## `job-monitor:validate` follows the shared `<addon>:validate` contract
 
@@ -53,7 +53,18 @@ next major version.
 2026-10-07 for every add-on's validate command, so that `validate && next-step` works as a gate
 and two commands never give exit 1 opposite meanings. **It is not the monitoring-plugin numbering**
 and must not drift back to it: the command was `job-monitor:health-check` with 0/1/2 as
-ok/warning/problem until 3.0.2, changed while unpublished and with nothing polling it.
+ok/warning/problem in 3.0.x, changed while unpublished.
+
+**The old name is kept as `Legacy\HealthCheck`, a hidden command that checks nothing and exits 1.**
+XenForo exits 0 for a command that is not defined — measured on 2.3.13 and 2.2.19 — so a monitor
+still calling a removed name would read "healthy" for ever. It cannot run the checks instead: the
+two contracts give 1 and 2 opposite meanings.
+
+**A command class dropped from a release must also go in `Setup::REMOVED_FILES`.** XenForo 2.2
+never deletes a file on upgrade, and its runner loads everything in `Cli/Command`, so the dropped
+class stays in the command list running the old code. Found in a 2.2 sandbox on 2026-10-08, where
+3.0.1's `health-check` was still listed after the upgrade. `Setup::upgrade()` deletes the listed
+files; 2.3's own clean-up job would get to them anyway.
 
 The checks live in `Service\HealthCheck`; the command only maps its states to exit codes and renders
 them. **There are four states, and `SKIPPED` is not `OK`**: a check that did not apply — failed jobs

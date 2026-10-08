@@ -47,4 +47,23 @@ class LegacyCommandsTest extends TestCase
 		$this->assertSame(0, $tester->getStatusCode());
 		$this->assertMatchesRegularExpression('/\d+ active cron entries found/', $tester->getDisplay());
 	}
+
+	public function test_the_3_0_name_of_validate_fails_and_says_where_to_go()
+	{
+		$command = new Legacy\HealthCheck();
+
+		$this->assertSame('job-monitor:health-check', $command->getName());
+		$this->assertTrue($command->isHidden());
+
+		// XenForo exits 0 for a command that is not defined, which a monitor would read as healthy
+		$tester = $this->runConsoleCommand($command, ['--json' => true]);
+
+		$this->assertSame(1, $tester->getStatusCode());
+		$this->assertStringContainsString('job-monitor:validate', $tester->getDisplay());
+	}
+
+	public function test_the_3_0_name_does_not_run_the_checks()
+	{
+		$this->assertNotInstanceOf(Command\Validate::class, new Legacy\HealthCheck());
+	}
 }

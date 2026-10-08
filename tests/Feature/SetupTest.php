@@ -87,4 +87,41 @@ class SetupTest extends TestCase
 			);
 		}
 	}
+
+	public function test_an_upgrade_removes_the_files_earlier_versions_shipped()
+	{
+		$dir = sys_get_temp_dir() . '/jobrunner-setup-' . uniqid();
+		mkdir($dir . '/Cli/Command', 0777, true);
+		file_put_contents($dir . '/Cli/Command/HealthCheck.php', '<?php // the 3.0.x command');
+		file_put_contents($dir . '/Cli/Command/Validate.php', '<?php // the current command');
+
+		$setup = $this->makeSetup();
+		$method = new \ReflectionMethod($setup, 'removeFilesFromEarlierVersions');
+		$method->setAccessible(true);
+		$method->invoke($setup, $dir);
+
+		$this->assertFileDoesNotExist($dir . '/Cli/Command/HealthCheck.php');
+		$this->assertFileExists($dir . '/Cli/Command/Validate.php', 'only the listed files may go');
+
+		unlink($dir . '/Cli/Command/Validate.php');
+		rmdir($dir . '/Cli/Command');
+		rmdir($dir . '/Cli');
+		rmdir($dir);
+	}
+
+	public function test_no_file_the_release_ships_is_on_the_removal_list()
+	{
+		foreach (\Hampel\JobRunner\Setup::REMOVED_FILES AS $file)
+		{
+			$this->assertFileDoesNotExist(dirname(__DIR__, 2) . '/' . $file, "{$file} is listed for removal but exists");
+		}
+	}
+
+	public function test_upgrade_removes_those_files()
+	{
+		$source = file_get_contents(dirname(__DIR__, 2) . '/Setup.php');
+		preg_match('/public function upgrade\(.*?\n\t}/s', $source, $upgrade);
+
+		$this->assertStringContainsString('removeFilesFromEarlierVersions()', $upgrade[0]);
+	}
 }

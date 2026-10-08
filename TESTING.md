@@ -29,6 +29,7 @@ under anything but `job-monitor:run-jobs` they add nothing.
 | `job-monitor:run-cron <id>` | runs one cron entry now, as the scheduler would |
 | `job-monitor:queue-test-job <email>` | queues a job that sends one email to that address |
 | `hg:run-jobs` | deprecated: runs XenForo's `xf:run-jobs` with the same options, for pre-3.0.0 crontabs |
+| `job-monitor:health-check` | hidden: the 3.0.x name of `validate`. Checks nothing, says so, and exits 1 — XenForo exits 0 for a command that does not exist |
 
 The other `hg:` names — `hg:show-jobs`, `hg:show-crons`, `hg:run-cron`, `hg:test-jobs` — are hidden
 commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They do not appear in
@@ -80,7 +81,9 @@ commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They 
 - **Upgrading on XenForo 2.3 queues XenForo's file clean-up**, which deletes every file in the
   add-on's directory that the release's `hashes.json` does not list. Harmless on an installed copy;
   never upgrade from a release zip over a development checkout. On 2.2 there is no clean-up, so
-  files 3.0.0 removed stay on disk, unreferenced.
+  `Setup::upgrade()` deletes the files in `Setup::REMOVED_FILES` itself. **A file dropped from a
+  release and missing from that list stays on disk on 2.2, and one under `Cli/Command` stays a
+  command.** Compare the upgraded add-on directory with the zip in the 2.2 sandbox.
 - **An upgrade can start from the XenForo 1 add-on `DisableRunDeferred`**, through
   `legacy_addon_id`. `Setup::upgrade()` converts nothing — it only deletes the old lock file — but
   that path has not been exercised.

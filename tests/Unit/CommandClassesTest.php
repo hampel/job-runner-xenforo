@@ -25,7 +25,7 @@ class CommandClassesTest extends TestCase
 
 		// the walk should have found these, or it is looking in the wrong place
 		$this->assertContains(Validate::class, $classes);
-		$this->assertGreaterThanOrEqual(13, count($classes));
+		$this->assertGreaterThanOrEqual(14, count($classes));
 
 		foreach ($classes AS $class)
 		{

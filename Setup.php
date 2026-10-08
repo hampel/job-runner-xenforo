@@ -7,6 +7,19 @@ class Setup extends AbstractSetup
 	/** hourly job and cron statistics - see Repository\Stats */
 	const STATS_TABLE = 'xf_hampel_jobrunner_stat';
 
+	/**
+	 * Files earlier versions shipped and this one does not, relative to the add-on's directory.
+	 * XenForo 2.2 never deletes a file on upgrade, and one left in Cli/Command is still a command.
+	 */
+	const REMOVED_FILES = [
+		'Cli/Command/HealthCheck.php',
+		'Cli/Command/TestJobs.php',
+		'Listener.php',
+		'SubContainer/JobRunner.php',
+		'Util/Lock.php',
+		'XF/Job/Cron.php',
+	];
+
 	public function install(array $stepParams = [])
 	{
 		$this->createStatsTable();
@@ -16,6 +29,7 @@ class Setup extends AbstractSetup
 	{
 		$this->createStatsTable();
 		$this->removeLegacyLockFile();
+		$this->removeFilesFromEarlierVersions();
 	}
 
     public function postUpgrade($previousVersion, array &$stateChanges)
@@ -77,6 +91,36 @@ class Setup extends AbstractSetup
 		catch (\Throwable $e)
 		{
 			// a leftover file is harmless - never fail an upgrade over it
+		}
+	}
+
+	/**
+	 * Delete the files in REMOVED_FILES. XenForo 2.3 clears them with its own clean-up job after an
+	 * upgrade; 2.2 has none, so a command class dropped from a release stays in the command list
+	 * there, running the old code. Safe to call on every upgrade: a development checkout has none
+	 * of them.
+	 *
+	 * @param string|null $directory the add-on's directory, when it is not this file's
+	 */
+	protected function removeFilesFromEarlierVersions($directory = null)
+	{
+		$directory = rtrim($directory ?: __DIR__, '/\\');
+
+		foreach (self::REMOVED_FILES AS $file)
+		{
+			$path = $directory . '/' . $file;
+
+			try
+			{
+				if (is_file($path))
+				{
+					unlink($path);
+				}
+			}
+			catch (\Throwable $e)
+			{
+				// a leftover file is not worth failing an upgrade over
+			}
 		}
 	}
 
