@@ -3,7 +3,6 @@
 use Hampel\JobRunner\Cli\Command\Validate;
 use Symfony\Component\Console\Command\Command;
 use Tests\TestCase;
-use XF\Cli\Runner;
 
 /**
  * XenForo loads every add-on's command classes to list them, so one that cannot load stops cmd.php
@@ -13,48 +12,23 @@ use XF\Cli\Runner;
 class CommandClassesTest extends TestCase
 {
 	/**
-	 * @return string[] class names, found the way XenForo's runner finds them
+	 * @return string[] every command class the add-on ships, each already proved loadable
 	 */
 	protected function commandClasses(): array
 	{
-		$root = dirname(__DIR__, 2) . '/Cli/Command';
-		$classes = [];
-
-		$files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
-		foreach ($files AS $file)
-		{
-			if ($file->getExtension() != 'php')
-			{
-				continue;
-			}
-
-			$local = substr($file->getPathname(), strlen($root) + 1, -4);
-			$classes[] = 'Hampel\JobRunner\Cli\Command\\' . str_replace('/', '\\', $local);
-		}
-
-		sort($classes);
-
-		return $classes;
-	}
-
-	public function test_the_command_classes_are_found()
-	{
-		$classes = $this->commandClasses();
-
-		// a walk that finds nothing would make every test below pass
-		$this->assertContains(Validate::class, $classes);
-		$this->assertGreaterThanOrEqual(13, count($classes));
+		return $this->assertConsoleCommandsLoad();
 	}
 
 	public function test_every_command_class_is_one_xenforo_can_load()
 	{
-		$runner = (new \ReflectionClass(Runner::class))->newInstanceWithoutConstructor();
-		$isValid = new \ReflectionMethod(Runner::class, 'isValidCommandClass');
-		$isValid->setAccessible(true);
+		$classes = $this->commandClasses();
 
-		foreach ($this->commandClasses() AS $class)
+		// the walk should have found these, or it is looking in the wrong place
+		$this->assertContains(Validate::class, $classes);
+		$this->assertGreaterThanOrEqual(13, count($classes));
+
+		foreach ($classes AS $class)
 		{
-			$this->assertTrue($isValid->invoke($runner, $class), "{$class} is not a command XenForo can load");
 			$this->assertNotEmpty((new $class())->getName(), "{$class} has no name");
 		}
 	}
