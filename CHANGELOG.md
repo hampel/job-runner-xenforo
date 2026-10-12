@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.1 (2026-10-12)
+
+* declares to the Admin API add-on, on a forum that has it, that this add-on has no secret
+  settings. It answers the `hampel_admin_api_redaction` code event, which is never fired on a forum
+  without that add-on
+
 ## 3.1.0 (2026-10-08)
 
 * **`job-monitor:health-check` is now `job-monitor:validate`, and its exit codes have changed.** It
