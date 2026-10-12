@@ -262,6 +262,23 @@ none of it ships. The test framework's README carries the same two entries.
 - **`tests/Fixtures/` holds the cron callbacks**, recording each call by entry id, and
   `Fixtures/Job/FailingJob` — XenForo only accepts a job class inside a `Job` namespace.
 
+### There are no seeders, deliberately
+
+**The add-on has a table of its own and no `Seed/` directory for the Seeder add-on.** Decided
+2026-10-12. Seeders would make a history to run the commands against by hand — 90 days of hourly
+statistics, a spread of failed jobs, a stuck job — and three things made that not worth carrying:
+
+- nothing the suite leaves to a person is about data. What is left is real cron, an old crontab,
+  the upgrade and a real email;
+- the tests already build those rows, with a controlled clock. A hand-inserted row usually proves
+  less than a saved entity, and that does not apply here: the statistics and failed-job tables
+  have no entities, and both XenForo and this add-on write them with plain inserts;
+- Seeder needs XenForo 2.3, so a seeder could never run on the 2.2 line the add-on supports.
+
+**Revisit it when the add-on shows its statistics somewhere a person looks**, such as an admin
+page, or gains a threshold that has to be tuned against real volume. A `Seed/` directory then also
+needs an `rm -frv` line in `build.json`, before the line that moves `*.md`.
+
 ### Never run a failing job through the job manager in a test
 
 **Core's `runJobInternal()` calls `$db->rollbackAll()` when a job throws, which also ends the test's
