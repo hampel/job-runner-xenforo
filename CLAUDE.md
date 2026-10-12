@@ -204,7 +204,7 @@ mail goes to a sink.
 
 ## Tests
 
-The suite is on `hampel/xenforo-test-framework` `^5.17` and PHPUnit `^12.0`. The framework boots
+The suite is on `hampel/xenforo-test-framework` `^5.24` and PHPUnit `^12.0`. The framework boots
 the enclosing XenForo install (`tests/TestCase.php` sets `$rootDir` to four levels up), so it needs
 a working install and database, not only `vendor/`.
 
