@@ -47,7 +47,10 @@ commands in `Cli/Command/Legacy/` that run the new ones, for the 3.x line. They 
 - A cron entry, `jobMonitorPrune` (daily, 03:17), calling `Cron\Prune::prune()`: deletes
   `xf_failed_job` rows older than 30 days (2.3 only) and statistics older than 90; with its title
   phrase `cron_entry.jobMonitorPrune`.
-- No options, templates, routes, permissions or listeners.
+- A code event listener, `Listener::adminApiRedaction()`, on `hampel_admin_api_redaction`: it
+  declares to the Admin API add-on that this add-on has no secret settings. The event exists only
+  where that add-on is installed, and is never fired otherwise.
+- No options, templates, routes or permissions.
 
 ## Fragile points
 

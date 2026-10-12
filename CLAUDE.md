@@ -21,8 +21,9 @@ what it is doing. Its commands are `job-monitor:validate` (is the queue and cron
 `job-monitor:run-jobs` (run the queue and log each job and cron entry), `job-monitor:show-jobs`,
 `job-monitor:show-failed-jobs`, `job-monitor:show-stats`, `job-monitor:show-crons`,
 `job-monitor:run-cron <id>` and `job-monitor:queue-test-job <email>`. There are no options,
-templates, routes or listeners — `_output/` holds two class extensions, and the daily
-`jobMonitorPrune` cron entry with its title phrase.
+templates or routes — `_output/` holds two class extensions, the daily `jobMonitorPrune` cron entry
+with its title phrase, and one code event listener, which declares the add-on's secrets to the Admin
+API add-on.
 
 **The add-on records, under any runner:**
 - **every job and cron entry's run time**, as hourly buckets in its one table,
@@ -74,6 +75,18 @@ logged, so the rest still report; a new check goes in the `CHECKS` map to get th
 error log row the add-on writes begins `JobRunner: `** (`ERROR_LOG_PREFIX`). Anything else that
 wants the checks — an HTTP endpoint, say — calls the service, not the command. `--json` reports the
 status found, whatever the flags; only `exit_code` follows `--strict`.
+
+### The add-on declares that it has no secrets
+
+**`Listener::adminApiRedaction()` answers the `hampel_admin_api_redaction` code event with an empty
+entry for this add-on.** The Admin API add-on shows a forum's settings with secrets removed, and
+shows an add-on's text settings only once that add-on has said which are secrets. This one has no
+options, `config.php` keys or credentials, so the list is empty. **An option or key added later is
+declared in the same commit**; `SecretsDeclarationTest` fails on an undeclared option whose name
+reads like a credential.
+
+**It is not a dependency.** The event is defined by that add-on and never fires without it, and
+nothing goes in `addon.json`'s `require`.
 
 ### There is no `job-monitor:config`, deliberately
 

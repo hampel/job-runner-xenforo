@@ -10,11 +10,11 @@ class Setup extends AbstractSetup
 	/**
 	 * Files earlier versions shipped and this one does not, relative to the add-on's directory.
 	 * XenForo 2.2 never deletes a file on upgrade, and one left in Cli/Command is still a command.
+	 * A path the add-on ships again has to come off this list, or every upgrade deletes it.
 	 */
 	const REMOVED_FILES = [
 		'Cli/Command/HealthCheck.php',
 		'Cli/Command/TestJobs.php',
-		'Listener.php',
 		'SubContainer/JobRunner.php',
 		'Util/Lock.php',
 		'XF/Job/Cron.php',
