@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.2 (2026-10-14)
+
+* `job-monitor:validate` accepts `--unattended`. Other add-ons use the option to skip a check that
+  sends something, such as a test email; these checks send nothing, so it changes nothing here. It
+  is accepted so that a monitor can run every add-on's `validate` with the same options
+
 ## 3.1.1 (2026-10-12)
 
 * declares to the Admin API add-on, on a forum that has it, that this add-on has no secret
