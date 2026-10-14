@@ -13,6 +13,11 @@ use Symfony\Component\Console\Output\OutputInterface;
  * a cron job can depend on it. --strict makes a warning exit 2, for a monitor that wants to hear of
  * one; it changes nothing else. This is the contract every <addon>:validate shares, and it is not
  * the monitoring-plugin numbering: 1 always means a problem.
+ *
+ * --unattended is accepted and does nothing. In the shared contract it skips the checks that send
+ * something, and none of these do; it is here so that "validate --strict --unattended" is one
+ * command line a monitor can run against every add-on. It is never read, --fix included: a repair
+ * is asked for by name.
  */
 class Validate extends Command
 {
@@ -32,6 +37,12 @@ class Validate extends Command
 				null,
 				InputOption::VALUE_NONE,
 				'Exit 2 when there are warnings and no problems, instead of 0'
+			)
+			->addOption(
+				'unattended',
+				null,
+				InputOption::VALUE_NONE,
+				'Accepted so one command line works for every add-on. These checks send nothing, so it changes nothing'
 			)
 			->addOption(
 				'fix',

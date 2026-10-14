@@ -76,6 +76,16 @@ error log row the add-on writes begins `JobRunner: `** (`ERROR_LOG_PREFIX`). Any
 wants the checks — an HTTP endpoint, say — calls the service, not the command. `--json` reports the
 status found, whatever the flags; only `exit_code` follows `--strict`.
 
+**`--unattended` is accepted and does nothing.** Decided 2026-10-14 for every add-on's validate:
+`validate --strict --unattended` is the one command line a monitor runs against all of them, and a
+command without the option fails that line on an unknown option. In the shared contract the flag
+skips the checks that send something — an email, a post, a log record — and none of these do: they
+read the queue, the cron entries and the registry. So the command never reads the flag, and the
+help text says it changes nothing, so that it does not look as though something was suppressed.
+**It does not stop `--fix`**: a repair is asked for by name. **A check that later sends something
+must skip it under `--unattended`**, and the help text changes in the same commit.
+`HealthCheckTest` requires the output and the exit code to be the same with and without it.
+
 ### The add-on declares that it has no secrets
 
 **`Listener::adminApiRedaction()` answers the `hampel_admin_api_redaction` code event with an empty

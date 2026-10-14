@@ -104,6 +104,10 @@ php cmd.php job-monitor:validate --strict     # for a monitor: a warning exits 2
 warning and 2 is critical: here 1 always means a problem. Map the values explicitly in whatever
 reads them.
 
+`--unattended` is accepted and changes nothing. Other add-ons' validate commands use it to skip a
+check that sends something, such as a test email; these checks send nothing. It is there so that a
+monitor can run every add-on's validate with the same options.
+
 `--json` prints the same result as one JSON document — the overall `status` (`ok`, `warning` or
 `problem`, whatever the flags), the `exit_code`, `strict`, `checked_at`, `fixed_cron_job` (`true`,
 `false`, or `null` when no repair was attempted) and each check's `check`, `label`, `status` and

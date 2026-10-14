@@ -285,6 +285,59 @@ class HealthCheckTest extends TestCase
 		$this->assertSame($expected, $tester->getStatusCode(), $tester->getDisplay());
 	}
 
+	/**
+	 * --unattended is part of the command line a monitor runs against every add-on's validate. These
+	 * checks send nothing, so it is accepted and changes neither the exit code nor a line of output.
+	 */
+	public static function unattendedRuns(): array
+	{
+		return [
+			'healthy' => ['healthy', [], 0],
+			'warning' => ['warning', [], 0],
+			'warning, strict' => ['warning', ['--strict' => true], 2],
+			'problem, strict' => ['problem', ['--strict' => true], 1],
+			'warning, json' => ['warning', ['--json' => true], 0],
+		];
+	}
+
+	#[\PHPUnit\Framework\Attributes\DataProvider('unattendedRuns')]
+	public function test_unattended_is_accepted_and_changes_nothing($state, array $input, $expected)
+	{
+		if ($state == 'warning')
+		{
+			$this->insertJob('jrTestLate', 'Hampel\JobRunner:TestJob', 100000 - 600);
+		}
+		if ($state == 'problem')
+		{
+			$this->removeCronJob();
+		}
+
+		$without = $this->runConsoleCommand(new ValidateCommand(), $input);
+		$with = $this->runConsoleCommand(new ValidateCommand(), $input + ['--unattended' => true]);
+
+		$this->assertSame($expected, $with->getStatusCode(), $with->getDisplay());
+		$this->assertSame($without->getStatusCode(), $with->getStatusCode());
+		$this->assertSame($without->getDisplay(), $with->getDisplay());
+	}
+
+	public function test_unattended_does_not_stop_a_fix_that_was_asked_for()
+	{
+		$this->removeCronJob();
+
+		$tester = $this->runConsoleCommand(new ValidateCommand(), ['--fix' => true, '--unattended' => true]);
+
+		$this->assertSame(0, $tester->getStatusCode(), $tester->getDisplay());
+		$this->assertStringContainsString('Queued the cron job again', $tester->getDisplay());
+	}
+
+	public function test_the_help_says_unattended_changes_nothing()
+	{
+		$option = (new ValidateCommand())->getDefinition()->getOption('unattended');
+
+		$this->assertFalse($option->acceptValue());
+		$this->assertStringContainsString('changes nothing', $option->getDescription());
+	}
+
 	public function test_the_command_is_named_validate()
 	{
 		$this->assertSame('job-monitor:validate', (new ValidateCommand())->getName());

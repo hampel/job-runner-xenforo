@@ -20,7 +20,7 @@ under anything but `job-monitor:run-jobs` they add nothing.
 
 | command | does |
 |---|---|
-| `job-monitor:validate` | checks the queue and cron through `Service\HealthCheck`; exits 1 on a problem, and 2 on a warning under `--strict`; `--fix` queues a missing `cron` job via core's `updateMinimumNextRunTime()` |
+| `job-monitor:validate` | checks the queue and cron through `Service\HealthCheck`; exits 1 on a problem, and 2 on a warning under `--strict`; `--unattended` is accepted and changes nothing; `--fix` queues a missing `cron` job via core's `updateMinimumNextRunTime()` |
 | `job-monitor:run-jobs` | runs the queue by hand, logging each job and cron entry; boots `Hampel\JobRunner\App` for the logger |
 | `job-monitor:show-jobs` | lists the job queue |
 | `job-monitor:show-failed-jobs` | lists `xf_failed_job`, newest first, or one row in full; on 2.2 says there is none |
